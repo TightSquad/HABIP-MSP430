@@ -4,7 +4,7 @@
 */.launches
 */.settings
 */Debug
-*/.metadata
+*.metadata
 */dvt	
-*/RemoteSystemsTempFiles
+*RemoteSystemsTempFiles
 
