@@ -1,0 +1,10 @@
+# Created by Steven Giewont
+
+# file locks introduced since 7.x
+/.launches
+/.settings
+/Debug
+/.metadata
+/dvt	
+/RemoteSystemsTempFiles
+
