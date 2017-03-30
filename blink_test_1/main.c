@@ -36,5 +36,6 @@ int main(void) {
 
         // Delay
         for(i=10000; i>0; i--);
-    }
+		for(i=10000; i>0; i--);
+	}
 }
