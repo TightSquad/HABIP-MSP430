@@ -15,7 +15,7 @@ int main(void) {
 
     // Set P1.0 to output direction
     GPIO_setAsOutputPin(
-        GPIO_PORT_P1,
+        GPIO_PORT_P4,
         GPIO_PIN1
         );
 
@@ -24,7 +24,7 @@ int main(void) {
     PMM_unlockLPM5();
 
     GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
-    GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
+    GPIO_setOutputLowOnPin(GPIO_PORT_P4, GPIO_PIN1);
 
     while(1)
     {
@@ -32,7 +32,7 @@ int main(void) {
         GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
 
         // Toggle P1.0 output
-		GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN1);
+		GPIO_toggleOutputOnPin(GPIO_PORT_P4, GPIO_PIN1);
 
         // Delay
         for(i=10000; i>0; i--);

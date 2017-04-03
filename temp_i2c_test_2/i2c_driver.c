@@ -42,7 +42,7 @@
 //***** Function Prototypes *****
 
 //***** Global Data *****
-EUSCI_B_I2C_initMasterParam i2cConfig =
+volatile EUSCI_B_I2C_initMasterParam i2cConfig =
 {
         EUSCI_B_I2C_CLOCKSOURCE_SMCLK,          // SMCLK Clock Source
 		0,
