@@ -27,7 +27,7 @@ int main(void) {
    int forward = 1;
 
    while(1){
-	   motorON();
+	    motorON();
 
     	if(forward == 1){
     		currentControl(current_value);
