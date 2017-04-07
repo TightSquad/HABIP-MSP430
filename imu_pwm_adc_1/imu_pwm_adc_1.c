@@ -4,9 +4,13 @@
 //	 Using the IMu data, drive a PWM and GPIO based on the directon and magnitude of the IMU data
 //******************************************************************************
 #include <msp430.h>
+#include <driverlib.h>
 
 int read_IMU_SPI(unsigned char register_address);
 void setup_IMU_SPI(void);
+
+void setupADC(void);
+int readADC(void);
 
 void setupMotor(void);
 void motorON(void);
@@ -20,8 +24,12 @@ volatile unsigned char RXData = 0;
 volatile unsigned char RXData2 = 0;
 volatile unsigned char TXData;
 
-int i = 0;
-signed int data_array [1000];
+//adc stuff
+uint16_t adc_val;
+int adc_software_flag = 0;
+int adc_array[500];
+
+signed int data_array [500];
 
 //Sensor's Read Register Adddresses
 const unsigned char POWERSUPPLY = 0x02;            	// Power Supply Voltage
@@ -57,7 +65,12 @@ int main(void)
     //initialze the SPI
     setup_IMU_SPI();
 
+    // setup ADC to read from Header J8, SPEED_IN
+    setupADC();
+
+    int i = 0;
     int z_gyro_data;
+    int current_adc_val;
 
     while(1)
     {
@@ -65,8 +78,13 @@ int main(void)
     	z_gyro_data = read_IMU_SPI(ZGYRO);
 
     	//store in an array to plot later
-    	data_array[i] = z_gyro_data;
-    	i++;
+		data_array[i] = z_gyro_data;
+		i++;
+
+    	//capture current ADC value
+    	current_adc_val = readADC();
+    	adc_array[i] = current_adc_val;
+
 
     	// if CW rotation is detected, make a PWM that is linearly proportional to the IMU data
     	if(z_gyro_data >= 30){
@@ -91,7 +109,7 @@ int main(void)
     		motorOFF();
     	}
 
-    	//__delay_cycles(2000);
+    	__delay_cycles(2000);
     }
 }
 
@@ -179,6 +197,55 @@ int read_IMU_SPI(unsigned char register_address){
 	}
 	
 	return dataOut;
+}
+
+void setupADC(void){
+	   // Configure P3.0 for ADC, A12
+	   P3SEL1 |= BIT0;
+	   P3SEL0 |= BIT0;
+
+	   //clear and use 16clk cycles, turn ADC on
+	   ADC12CTL0 = 0;
+	   ADC12CTL0 |= ADC12SHT0_2 + ADC12ON;
+
+	   //clear and turn on sampling timer
+	   ADC12CTL1 = 0;
+	   ADC12CTL1 = ADC12SHP;                   // Use sampling timer
+
+	   //set 12bit resolution
+	   ADC12CTL2 = 0;
+	   ADC12CTL2 |= ADC12RES_2;
+
+	   //clear and setup A12 as input source for MEM12
+	   ADC12MCTL12 = 0;
+	   ADC12MCTL12 |= ADC12_B_INPUT_A12;
+
+	   //start acquistions on MEM12
+	   ADC12CTL3 = 0;
+	   ADC12CTL3 |= ADC12CSTARTADD_12;
+
+	   // enable interrupts for A12
+	   ADC12IER0 = 0;
+	   ADC12IER0 |= ADC12IE12;
+}
+
+int readADC(void){
+	// Enable ADC and start acquisition
+   ADC12CTL0 |= ADC12ENC + ADC12SC;
+
+   //enable general interrupts
+   __bis_SR_register(LPM0_bits | GIE);
+
+   //wait for the adc software flag to be set
+   while(adc_software_flag == 0);
+
+   //disable the ADC
+   ADC12CTL0 &= ~ADC12ENC;
+
+   //clear the adc software flag
+   adc_software_flag = 0;
+
+   return adc_val;
 }
 
 void setupMotor(void){
@@ -274,4 +341,17 @@ void __attribute__ ((interrupt(EUSCI_A1_VECTOR))) USCI_A1_ISR (void)
             break;
         default: break;
     }
+}
+
+//ADC Interrupt Service Routine
+#pragma vector=ADC12_B_VECTOR
+__interrupt void ADC12_ISR(void)
+{
+	//set the software flag
+	adc_software_flag = 1;
+	//grab the ADC value
+	adc_val = ADC12MEM12;			//store value of ADC in array
+	__bic_SR_register_on_exit(LPM0_bits);
+	return;
+
 }
