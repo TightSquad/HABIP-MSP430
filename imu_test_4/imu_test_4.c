@@ -70,13 +70,14 @@
 //   Built with IAR Embedded Workbench V6.30 & Code Composer Studio V6.1
 //******************************************************************************
 #include <msp430.h>
+#include  <stdint.h>
 
 volatile unsigned char RXData = 0;
 volatile unsigned char RXData2 = 0;
 volatile unsigned char TXData;
 
 int i = 0;
-volatile unsigned int data_array [1000];
+signed int data_array [1000];
 
 //Sensor's Read Register Adddresses
 const unsigned char POWERSUPPLY = 0x02;            	// Power Supply Voltage
@@ -102,7 +103,7 @@ const unsigned char READcmd = 0x00;            		// ADIS16350's read command
 const unsigned char WRITEcmd = 0x80;                // ADIS16350's write command
 const unsigned char READFILLER = 0x5A;             	// ADIS16350's read filler (Dont care bits after register addr)
 
-int dataOut = 0;
+signed int dataOut = 0;
 int byte_num = 0;
 
 int main(void)
@@ -148,13 +149,33 @@ int main(void)
     while(1)
     {
 
+    	//TXData = 0xBE;
     	TXData = ZGYRO;
     	UCB1IE |= UCTXIE;
         __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
 
+        dataOut = RXData;
+        dataOut = dataOut << 8;
+//        data_array[i] = dataOut;
+//        i++;
+
+//        TXData = 0x82;
         TXData = READFILLER;
         UCB1IE |= UCTXIE;
         __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+
+
+        dataOut = dataOut | RXData;
+		//First 2 bits are flags/alarms
+		dataOut = dataOut & 0x3fff;
+		if(dataOut & 0x2000){
+			dataOut = dataOut | 0xC000;
+		}
+        //dataOut = RXData;
+		data_array[i] = dataOut;
+		i++;
+
+		dataOut = 0;
 
 
         TXData = ZGYRO;
@@ -164,24 +185,39 @@ int main(void)
 		dataOut = RXData;
 		dataOut = dataOut << 8;
 
+		//dataOut = RXData;
+//		data_array[i] = dataOut;
+//		i++;
+
+		//dataOut = RXData;
+		//dataOut = dataOut << 8;
+
 		TXData = READFILLER;
 		UCB1IE |= UCTXIE;
 		__bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
-
-//		dataOut = RXData;
-//		dataOut = dataOut << 8;
-
-//		TXData = READFILLER;
-//		UCB1IE |= UCTXIE;
-//		__bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
 
 
 		dataOut = dataOut | RXData;
 		//First 2 bits are flags/alarms
 		dataOut = dataOut & 0x3fff;
+		if(dataOut & 0x2000){
+			dataOut = dataOut | 0xC000;
+		}
 		data_array[i] = dataOut;
 		i++;
+//
 		dataOut = 0;
+
+//		dataOut = RXData;
+//		data_array[i] = dataOut;
+//		i++;
+
+//		dataOut = dataOut | RXData;
+//		//First 2 bits are flags/alarms
+//		dataOut = dataOut & 0x3fff;
+//		data_array[i] = dataOut;
+//		i++;
+//		dataOut = 0;
 
 //        //Append received byte to data
 //		dataOut = dataOut << 8;
