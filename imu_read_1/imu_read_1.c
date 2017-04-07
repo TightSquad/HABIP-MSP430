@@ -1,47 +1,3 @@
-/* --COPYRIGHT--,BSD_EX
- * Copyright (c) 2015, Texas Instruments Incorporated
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * *  Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * *  Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * *  Neither the name of Texas Instruments Incorporated nor the names of
- *    its contributors may be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
- * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- *******************************************************************************
- *
- *                       MSP430 CODE EXAMPLE DISCLAIMER
- *
- * MSP430 code examples are self-contained low-level programs that typically
- * demonstrate a single peripheral function or device feature in a highly
- * concise manner. For this the code may rely on the device's power-on default
- * register values and settings such as the clock configuration and care must
- * be taken when combining code from several examples to avoid potential side
- * effects. Also see www.ti.com/grace for a GUI- and www.ti.com/msp430ware
- * for an API functional library-approach to peripheral configuration.
- *
- * --/COPYRIGHT--*/
 //******************************************************************************
 //   MSP430FR5x9x Demo - eUSCI_B1, SPI 3-Wire Master Incremented Data
 //
@@ -63,14 +19,12 @@
 //                |             P5.1|<- Data In (UCB1SOMI)
 //                |                 |
 //                |             P5.2|-> Serial Clock Out (UCB1CLK)
-//
-//   William Goh
-//   Texas Instruments Inc.
-//   October 2015
-//   Built with IAR Embedded Workbench V6.30 & Code Composer Studio V6.1
+
 //******************************************************************************
 #include <msp430.h>
-#include  <stdint.h>
+
+int read_IMU_SPI(unsigned char register_address);
+void setup_IMU_SPI(void);
 
 volatile unsigned char RXData = 0;
 volatile unsigned char RXData2 = 0;
@@ -101,15 +55,27 @@ const unsigned char ZACCELOFF = 0x24;			   	// Z Accel Offset
 //Send/Receive Headers
 const unsigned char READcmd = 0x00;            		// ADIS16350's read command
 const unsigned char WRITEcmd = 0x80;                // ADIS16350's write command
-const unsigned char READFILLER = 0x5A;             	// ADIS16350's read filler (Dont care bits after register addr)
 
-signed int dataOut = 0;
-int byte_num = 0;
 
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;               // Stop watchdog timer
 
+    setup_IMU_SPI();
+
+    int z_gyro_data;
+
+    while(1)
+    {
+    	z_gyro_data = read_IMU_SPI(ZGYRO);
+    	data_array[i] = z_gyro_data;
+    	i++;
+    	__delay_cycles(2000);
+    }
+}
+
+
+void setup_IMU_SPI(void){
 
     // Configure GPIO
     P5SEL1 &= ~(BIT0 | BIT1 | BIT2 | BIT3); // USCI_B1 SCLK, MOSI,
@@ -144,48 +110,56 @@ int main(void)
     UCB1BRW = 0x4;                         // /2
     UCB1CTLW0 &= ~UCSWRST;                  // **Initialize USCI state machine**
     UCB1IE |= UCRXIE;                       // Enable USCI_B1 RX interrupt
-    //TXData = 0x1;                           // Holds TX data
 
-    while(1)
-    {
-
-    	TXData = ZGYRO;
-    	UCB1IE |= UCTXIE;
-        __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
-
-        TXData = READFILLER;
-        UCB1IE |= UCTXIE;
-        __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
-
-
-		dataOut = 0;
-
-        TXData = ZGYRO;
-		UCB1IE |= UCTXIE;
-		__bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
-
-		dataOut = RXData;
-		dataOut = dataOut << 8;
-
-		TXData = READFILLER;
-		UCB1IE |= UCTXIE;
-		__bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
-
-		dataOut = dataOut | RXData;
-		//First 2 bits are flags/alarms
-		dataOut = dataOut & 0x3fff;
-		if(dataOut & 0x2000){
-			dataOut = dataOut | 0xC000;
-		}
-		data_array[i] = dataOut;
-		i++;
-//
-//		dataOut = 0;
-
-//        __no_operation();                   // Remain in LPM0
-//        __delay_cycles(2000);               // Delay before next transmission
-    }
 }
+
+
+int read_IMU_SPI(unsigned char register_address){
+	signed int dataOut = 0;
+	// ADIS16350's read filler (Dont care bits after register addr)
+	const unsigned char READFILLER = 0x5A;
+
+	//write the address you want to read
+	TXData = register_address;
+	UCB1IE |= UCTXIE;
+    __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+
+    //send filler data to make total data frame 16 bits
+    TXData = READFILLER;
+    UCB1IE |= UCTXIE;
+    __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+
+    //second time around, this time we will get the data. Need to clock data again so send the same stuff again.
+    TXData = register_address;
+	UCB1IE |= UCTXIE;
+	__bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+
+	// acquire first data frame from RX
+	dataOut = RXData;
+
+	// shift the result to the MSB of 16bit dataOut
+	dataOut = dataOut << 8;
+
+	//send next data frame to receive the final output
+	TXData = READFILLER;
+	UCB1IE |= UCTXIE;
+	__bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+
+	// concatenate the current data frame (RXData) with the previous frame
+	dataOut = dataOut | RXData;
+
+	//First 2 bits are flags/alarms
+	dataOut = dataOut & 0x3fff;
+
+	// to determine the sign of the result, determine if the 14th bit is a one or not. this will determine if it is in Two Complement form
+	if(dataOut & 0x2000){
+		// if in Two's comp, make bit 16 and 15 ones. This will allow int to read as a negative number
+		dataOut = dataOut | 0xC000;
+	}
+	
+	return dataOut;
+}
+
 
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=EUSCI_B1_VECTOR
