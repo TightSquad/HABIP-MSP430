@@ -97,6 +97,7 @@ void delay_LED(void);
 
 
 // UART UD Constants
+//const int EOT=0x7D; // End of Transmission ASCII Character as per Protocol Format
 const int EOT=4; // End of Transmission ASCII Character
 #define MSG_LEN 64 // Default for now
 
