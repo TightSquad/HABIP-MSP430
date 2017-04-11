@@ -125,7 +125,7 @@ volatile int uart_readDoneFG = 0;
 //volatile char TXData = '\0';
 volatile char spi_read_buffer[MSG_LEN]={};
 volatile char spi_read_message[MSG_LEN]={};
-volatile char spi_tx_msg[MSG_LEN]="{00:B4:ZGY}xxxxxxxxxxxyyyyyyyyyyyzzzzzzzzzzz";
+volatile char spi_tx_msg[MSG_LEN]="{00:B4:ZGY}";
 volatile char spi_index = 0;
 volatile char msg_index = 0;
 volatile int spi_readDoneFG = 0;
@@ -161,13 +161,16 @@ int main(void)
 //// End Main Code
 //    TXDATA = 0x30;                           // Holds TX data
     TXDATA = spi_tx_msg[msg_index];
+    volatile int dummy_values = 0;
     while(spi_readDoneFG == 0)
     {
     	UCB0IE |= UCTXIE;
         __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
         __no_operation();                   // Remain in LPM0
         __delay_cycles(2000);               // Delay before next transmission
-        TXDATA = spi_tx_msg[++msg_index];                           // Increment transmit data
+        if(dummy_values == 0){
+        	TXDATA = spi_tx_msg[++msg_index];                           // Increment transmit data
+        }
     }
 	while(1) ; // catchall for debug
 }
