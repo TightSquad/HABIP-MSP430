@@ -209,7 +209,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
 
         	if(msg_return != 1){
 				spi_read_buffer[spi_index] = UCA0RXBUF;
-				UCA0TXBUF = spi_read_buffer[spi_index];                  // Echo received data
+//				UCA0TXBUF = spi_read_buffer[spi_index];                  // Echo received data
 				if(spi_read_buffer[spi_index] == 0x7D){
 					msg_return = 1;
 					spi_index = 0;
@@ -223,8 +223,12 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
 
         	if(msg_return == 1){
         		if(spi_send_message[spi_index] == 0x7D){
+        			UCA0TXBUF = spi_send_message[spi_index];
         			msg_return = 0;
         			spi_index = 0;
+        			//while (!(UCA0IFG&UCTXIFG));             // USCI_B1 TX buffer ready?
+        			__bic_SR_register_on_exit(LPM0_bits);
+        			break;
         		}
         		UCA0TXBUF = spi_send_message[spi_index];
         	}
