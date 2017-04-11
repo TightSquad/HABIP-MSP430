@@ -356,7 +356,7 @@ void config_SPI_B0_Master(void){
     //UCB0MCTLW = 0;                          // No modulation
     UCB0CTLW0 &= ~UCSWRST;                  // **Initialize USCI state machine**
     UCB0IE |= UCRXIE;                       // Enable USCI_B0 RX interrupt
-    __bi_SR_register(GIE);
+    __bis_SR_register(GIE);
 }
 void config_SPI_B1_Slave(void){
 	/*

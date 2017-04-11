@@ -127,6 +127,7 @@ volatile char spi_read_buffer[MSG_LEN]={};
 volatile char spi_read_message[MSG_LEN]={};
 volatile char spi_index = 0;
 volatile int spi_readDoneFG = 0;
+volatile char TXDATA ='\0';
 
 int main(void)
 {
@@ -150,6 +151,8 @@ int main(void)
 // Begin Main Code
     P1OUT |= (BIT3);
     SPI_write_msg("Hi from Host");
+    TXDATA = 0;
+    UCB0IE |= UCTXIE;
     SPI_read_msg();
     P1OUT &= ~(BIT3);
 // End Main Code
@@ -263,7 +266,8 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
 			__no_operation();
 			break;
         case USCI_SPI_UCTXIFG:
-//            UCB0TXBUF = TXData;                   // Transmit characters
+            UCB0TXBUF = TXDATA;                   // Transmit characters
+            TXDATA = TXDATA + 1;
 //            UCB0IE &= ~UCTXIE;
             break;
         default: break;
@@ -354,7 +358,8 @@ void config_SPI_B0_Master(void){
 // Configure USCI_B0 for SPI operation
     UCB0CTLW0 = UCSWRST;                    // **Put state machine in reset**
 //    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM; // 4-pin, 8-bit SPI master
-    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB | UCMODE_1; // 4-pin, 8-bit SPI master
+//    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB | UCMODE_1; // 4-pin, 8-bit SPI master
+    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB; // 3-pin, 8-bit SPI master
                                             // Clock polarity high, MSB
     UCB0CTLW0 |= UCSSEL__ACLK;              // ACLK
     UCB0BRW = 0x02;                         // /2
