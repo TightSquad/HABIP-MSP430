@@ -125,9 +125,12 @@ volatile int uart_readDoneFG = 0;
 //volatile char TXData = '\0';
 volatile char spi_read_buffer[MSG_LEN]={};
 volatile char spi_read_message[MSG_LEN]={};
+volatile char spi_tx_msg[MSG_LEN]="{00:B4:ZGY}xxxxxxxxxxxyyyyyyyyyyyzzzzzzzzzzz";
 volatile char spi_index = 0;
+volatile char msg_index = 0;
 volatile int spi_readDoneFG = 0;
 volatile char TXDATA ='\0';
+volatile char RXDATA ='\0';
 
 int main(void)
 {
@@ -137,9 +140,9 @@ int main(void)
     config_DS4_LED();
     // SPI GPIO
     config_SPI_B0_Master_GPIO();
-    P1SEL0 &= ~(BIT3);
-    P1SEL1 &= ~(BIT3);
-    P1DIR |= (BIT3);
+//    P1SEL0 &= ~(BIT3);
+//    P1SEL1 &= ~(BIT3);
+//    P1DIR |= (BIT3);
     config_XT1_GPIO();						// XT1 Crystal
 
 // Configure Clock
@@ -148,15 +151,24 @@ int main(void)
 // Configure SPI
     config_SPI_B0_Master();
 
-// Begin Main Code
-    P1OUT |= (BIT3);
-    SPI_write_msg("Hi from Host");
-    TXDATA = 0;
-    UCB0IE |= UCTXIE;
-    SPI_read_msg();
-    P1OUT &= ~(BIT3);
-// End Main Code
-
+//// Begin Main Code
+////    P1OUT |= (BIT3);
+//    SPI_write_msg("Hi from Host");
+//    TXDATA = 0;
+//    UCB0IE |= UCTXIE;
+//    SPI_read_msg();
+////    P1OUT &= ~(BIT3);
+//// End Main Code
+//    TXDATA = 0x30;                           // Holds TX data
+    TXDATA = spi_tx_msg[msg_index];
+    while(spi_readDoneFG == 0)
+    {
+    	UCB0IE |= UCTXIE;
+        __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+        __no_operation();                   // Remain in LPM0
+        __delay_cycles(2000);               // Delay before next transmission
+        TXDATA = spi_tx_msg[++msg_index];                           // Increment transmit data
+    }
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
@@ -242,33 +254,50 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
 #error Compiler not supported!
 #endif
 {
+//    switch(__even_in_range(UCB0IV, USCI_SPI_UCTXIFG))
+//    {
+//        case USCI_NONE: break;
+//        case USCI_SPI_UCRXIFG:
+////            RXData = UCB0RXBUF;
+////            UCB0IFG &= ~UCRXIFG;
+////            __bic_SR_register_on_exit(LPM0_bits); // Wake up to setup next TX
+////            break;
+//            spi_read_buffer[spi_index] = UCB0RXBUF;
+////            UCB0TXBUF = spi_read_buffer[spi_index];
+//			if((spi_read_buffer[spi_index] == EOT)||(spi_index == MSG_LEN-1)) {
+//				unsigned int i;
+//				for(i = 0; i < spi_index; i++) {
+//					spi_read_message[i]=spi_read_buffer[i];
+//				}
+//				spi_read_message[spi_index]='\0';
+//				spi_index = 0;
+//				spi_readDoneFG = 1;
+//			} else {
+//				spi_index++;
+//			}
+//			__no_operation();
+//			break;
+//        case USCI_SPI_UCTXIFG:
+//            UCB0TXBUF = TXDATA;                   // Transmit characters
+//            TXDATA = TXDATA + 1;
+////            UCB0IE &= ~UCTXIE;
+//            break;
+//        default: break;
+//    }
     switch(__even_in_range(UCB0IV, USCI_SPI_UCTXIFG))
     {
         case USCI_NONE: break;
         case USCI_SPI_UCRXIFG:
-//            RXData = UCB0RXBUF;
-//            UCB0IFG &= ~UCRXIFG;
-//            __bic_SR_register_on_exit(LPM0_bits); // Wake up to setup next TX
-//            break;
-            spi_read_buffer[spi_index] = UCB0RXBUF;
-//            UCB0TXBUF = spi_read_buffer[spi_index];
-			if((spi_read_buffer[spi_index] == EOT)||(spi_index == MSG_LEN-1)) {
-				unsigned int i;
-				for(i = 0; i < spi_index; i++) {
-					spi_read_message[i]=spi_read_buffer[i];
-				}
-				spi_read_message[spi_index]='\0';
-				spi_index = 0;
-				spi_readDoneFG = 1;
-			} else {
-				spi_index++;
-			}
-			__no_operation();
-			break;
+        	spi_read_buffer[spi_index] = UCB0RXBUF;
+        	spi_index++;
+            UCB0IFG &= ~UCRXIFG;
+
+            // Wake up to setup next TX
+            __bic_SR_register_on_exit(LPM0_bits);
+            break;
         case USCI_SPI_UCTXIFG:
-            UCB0TXBUF = TXDATA;                   // Transmit characters
-            TXDATA = TXDATA + 1;
-//            UCB0IE &= ~UCTXIE;
+            UCB0TXBUF = TXDATA;             // Transmit characters
+            UCB0IE &= ~UCTXIE;
             break;
         default: break;
     }
@@ -323,8 +352,10 @@ void activate_GPIO_config(void){
 void config_SPI_B0_Master_GPIO(void){
 	// Configure SPI GPIO for Host MSP (MSP-MSP)
 	// STE/SS & SIMO & SOMI
-	P1SEL0 &= ~(BIT3 | BIT6 | BIT7);
-	P1SEL1 |= (BIT3 | BIT6 | BIT7);
+//	P1SEL0 &= ~(BIT3 | BIT6 | BIT7);
+//	P1SEL1 |= (BIT3 | BIT6 | BIT7);
+	P1SEL0 &= ~(BIT6 | BIT7);
+	P1SEL1 |= (BIT6 | BIT7);
 	// SCLK
 	P2SEL0 &= ~(BIT2);
 	P2SEL1 |= (BIT2);
@@ -412,7 +443,13 @@ void SPI_read_msg(void){
 	spi_readDoneFG = 0;
     UCB0IE |= UCRXIE;                        // Enable USCI_B0 RX interrupt
 //    __bis_SR_register(GIE);
-    while(spi_readDoneFG == 0) ;
+    while(spi_readDoneFG == 0){
+        UCB0IE |= UCTXIE;
+        __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+        __no_operation();                   // Remain in LPM0
+        __delay_cycles(2000);               // Delay before next transmission
+        TXDATA++;                           // Increment transmit data
+    }
     UCB0IE &= ~UCRXIE;                       // Disable USCI_B0 RX interrupt
 //    __bic_SR_register(GIE);
     Toggle_ON_OFF_DS4_LED(); // Optional
