@@ -125,6 +125,8 @@ volatile int uart_readDoneFG = 0;
 //volatile char TXData = '\0';
 volatile char spi_read_buffer[MSG_LEN]={};
 volatile char spi_read_message[MSG_LEN]={};
+volatile char spi_send_message[MSG_LEN]="{B4:ZGY:1450}";
+volatile int msg_return = 0;	//when to respond to SPI master
 volatile char spi_index = 0;
 volatile int spi_readDoneFG = 0;
 
@@ -144,9 +146,13 @@ int main(void)
 // Configure SPI
     config_SPI_A0_Slave();
 
+    UCA0TXBUF = 0x2B;
+
+    __bis_SR_register(LPM0_bits | GIE);
+
 // Begin Main Code
-    SPI_read_msg();
-    SPI_write_msg("Hi from Slave");
+//    SPI_read_msg();
+//    SPI_write_msg("Hi from Slave");
 // End Main Code
 
 	while(1) ; // catchall for debug
@@ -199,25 +205,52 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_SPI_UCRXIFG:
-//            RXData = UCA0RXBUF;
-            UCA0IFG &= ~UCRXIFG;
-//            __bic_SR_register_on_exit(LPM0_bits); // Wake up to setup next TX
-//            break;
-            spi_read_buffer[spi_index] = UCA0RXBUF;
-//            UCA0TXBUF = spi_read_buffer[spi_index];
-			if((spi_read_buffer[spi_index] == EOT)||(spi_index == MSG_LEN-1)) {
-				unsigned int i;
-				for(i = 0; i < spi_index; i++) {
-					spi_read_message[i]=spi_read_buffer[i];
+        	while (!(UCA0IFG&UCTXIFG));             // USCI_B1 TX buffer ready?
+
+        	if(msg_return != 1){
+				spi_read_buffer[spi_index] = UCA0RXBUF;
+				UCA0TXBUF = spi_read_buffer[spi_index];                  // Echo received data
+				if(spi_read_buffer[spi_index] == 0x7D){
+					msg_return = 1;
+					spi_index = 0;
 				}
-				spi_read_message[spi_index]='\0';
-				spi_index = 0;
-				spi_readDoneFG = 1;
-			} else {
-				spi_index++;
-			}
-			__no_operation();
+        	}
+
+//        	if(spi_read_buffer[spi_index] == 0x7D){
+//        		msg_return = 1;
+//				UCA0TXBUF = 0x48;                  // Echo received data
+//			}
+
+        	if(msg_return == 1){
+        		if(spi_send_message[spi_index] == 0x7D){
+        			msg_return = 0;
+        			spi_index = 0;
+        		}
+        		UCA0TXBUF = spi_send_message[spi_index];
+        	}
+
+			//UCA0TXBUF = spi_read_buffer[spi_index];                  // Echo received data
+			spi_index++;
 			break;
+////            RXData = UCA0RXBUF;
+//            UCA0IFG &= ~UCRXIFG;
+////            __bic_SR_register_on_exit(LPM0_bits); // Wake up to setup next TX
+////            break;
+//            spi_read_buffer[spi_index] = UCA0RXBUF;
+////            UCA0TXBUF = spi_read_buffer[spi_index];
+//			if((spi_read_buffer[spi_index] == EOT)||(spi_index == MSG_LEN-1)) {
+//				unsigned int i;
+//				for(i = 0; i < spi_index; i++) {
+//					spi_read_message[i]=spi_read_buffer[i];
+//				}
+//				spi_read_message[spi_index]='\0';
+//				spi_index = 0;
+//				spi_readDoneFG = 1;
+//			} else {
+//				spi_index++;
+//			}
+//			__no_operation();
+//			break;
         case USCI_SPI_UCTXIFG:
 //            UCA0TXBUF = TXData;                   // Transmit characters
 //            UCA0IE &= ~UCTXIE;
@@ -384,7 +417,7 @@ void config_SPI_A0_Slave(void){
 // Configure USCI_A0 for SPI operation
    UCA0CTLW0 = UCSWRST;                    // **Put state machine in reset**
 //   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM;   // 4-pin, 8-bit SPI slave
-   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1;   // 4-pin, 8-bit SPI slave
+   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_0;   // 4-pin, 8-bit SPI slave
                                            // Clock polarity high, MSB
 //   UCA0CTLW0 |= UCSSEL__SMCLK;             // ACLK
    UCA0BRW = 0x02;                         // /2
