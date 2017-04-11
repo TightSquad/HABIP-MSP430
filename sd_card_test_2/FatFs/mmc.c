@@ -344,8 +344,8 @@ DSTATUS disk_initialize (
     DLY_US(sdInterface->freq, 100);
 
     //TODO
-//    s = disk_status(drv);        /* Check if card is in the socket */
-//    if (s & STA_NODISK) return s;
+    s = disk_status(drv);        /* Check if card is in the socket */
+    if (s & STA_NODISK) return s;
 
     CS_H();
     for (n = 10; n; n--) rcvr_mmc(buf, 1);    /* 80 dummy clocks */
@@ -410,8 +410,8 @@ DRESULT disk_read (
     DSTATUS s;
 
 //TODO
-//    s = disk_status(drv);
-//    if (s & STA_NOINIT) return RES_NOTRDY;
+    s = disk_status(drv);
+    if (s & STA_NOINIT) return RES_NOTRDY;
     if (!count) return RES_PARERR;
     if (!(CardType & CT_BLOCK)) sector *= 512;    /* Convert LBA to byte address if needed */
 

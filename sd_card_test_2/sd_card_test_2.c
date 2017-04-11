@@ -130,12 +130,27 @@ int main(void) {
     //{
 	int log_num = 0;
 	char test_data[] = "how are you";
+	char time_sec[8];
 
-	while (log_num < 10) {
-		Init_RTC();
+	Init_RTC();
+
+	__delay_cycles(2000000);
+
+	while (log_num < 20) {
+
 		//sdcardLog();
 		writeData(test_data);
+		currTime = RTC_C_getCalendarTime(RTC_C_BASE);
+		int curr_time = currTime.Seconds;
+		itoa(curr_time, time_sec, 10);
+		writeData(time_sec);
 		log_num++;
+
+		GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
+		__delay_cycles(50000);
+		GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
+		__delay_cycles(50000);
+
 		__delay_cycles(2000000);
 	}
 
@@ -226,9 +241,9 @@ void Init_RTC()
     //Setup Current Time for Calendar
     calendar.Seconds    = 0x00;
     calendar.Minutes    = 0x00;
-    calendar.Hours      = 0x03;
+    calendar.Hours      = 0x02;
     calendar.DayOfWeek  = 0x06;
-    calendar.DayOfMonth = 0x10;
+    calendar.DayOfMonth = 0x11;
     calendar.Month      = 0x04;
     calendar.Year       = 0x2017;
 

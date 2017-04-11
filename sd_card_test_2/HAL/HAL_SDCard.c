@@ -49,11 +49,11 @@
 #define SD_CS           BIT7
 
 // Ports
-#define SPI_SEL         P5SEL1
+#define SPI_SEL         P5SEL0
 #define SPI_DIR         P5DIR
 #define SPI_OUT         P5OUT
 #define SPI_REN         P5REN
-#define SD_CS_SEL       P5SEL1
+#define SD_CS_SEL       P5SEL0
 #define SD_CS_OUT       P5OUT
 #define SD_CS_DIR       P5DIR
 
@@ -86,14 +86,14 @@ void SDCard_init(void)
     GPIO_setAsPeripheralModuleFunctionInputPin(
         GPIO_PORT_P5,
         GPIO_PIN6,
-        GPIO_SECONDARY_MODULE_FUNCTION
+		GPIO_PRIMARY_MODULE_FUNCTION
     );
 
     //Configure Pins for UCB0TXD/UCB0SIMO, UCB0RXD/UCB0SOMI
     GPIO_setAsPeripheralModuleFunctionInputPin(
         GPIO_PORT_P5,
         GPIO_PIN4 + GPIO_PIN5,
-        GPIO_SECONDARY_MODULE_FUNCTION
+		GPIO_PRIMARY_MODULE_FUNCTION
     );
 
     //Set CS pin high
