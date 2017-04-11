@@ -128,6 +128,8 @@ volatile char spi_read_message[MSG_LEN]={};
 volatile char spi_tx_msg[MSG_LEN]="{00:B4:ZGY}";
 volatile char spi_index = 0;
 volatile char msg_index = 0;
+volatile char spi_read_index = 0;
+volatile int spi_read_enable = 0;
 volatile int spi_readDoneFG = 0;
 volatile char TXDATA ='\0';
 volatile char RXDATA ='\0';
@@ -169,7 +171,15 @@ int main(void)
         __no_operation();                   // Remain in LPM0
         __delay_cycles(2000);               // Delay before next transmission
         if(dummy_values == 0){
-        	TXDATA = spi_tx_msg[++msg_index];                           // Increment transmit data
+        	if(TXDATA == 0x7D){
+        		dummy_values == 1;
+        	}
+        	else{
+        		TXDATA = spi_tx_msg[++msg_index];                           // Increment transmit data
+        	}
+        }
+        else if (dummy_values == 1){
+        	TXDATA = 0x58;
         }
     }
 	while(1) ; // catchall for debug
@@ -292,6 +302,21 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
         case USCI_NONE: break;
         case USCI_SPI_UCRXIFG:
         	spi_read_buffer[spi_index] = UCB0RXBUF;
+        	if(spi_read_enable == 0){
+        		if(spi_read_buffer[spi_index] == 0x7B){
+					spi_read_enable = 1;
+				}
+        	}
+        	if(spi_read_enable == 1){
+        		spi_read_message[spi_read_index] = spi_read_buffer[spi_index];
+        		if(spi_read_message[spi_read_index] == 0x7D){
+        			// Insert clear stuff later
+        			spi_readDoneFG = 1;
+        			UCB0IE &= ~UCRXIE;
+        		}
+        		spi_read_index++;
+        	}
+
         	spi_index++;
             UCB0IFG &= ~UCRXIFG;
 
