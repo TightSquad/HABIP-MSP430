@@ -16,6 +16,7 @@
 #include "SDCardLogMode.h"
 #include "driverlib.h"
 #include "daqcs_imu.h"
+#include "daqcs_motor.h"
 
 extern int mode;
 extern int pingHost;
@@ -98,6 +99,9 @@ int main(void) {
 
 	__delay_cycles(2000);
 
+	// setup the pins and timers for the motor control
+	setupMotor();
+
 	while (log_num < 500) {
 
 //		writeData(test_data);
@@ -117,6 +121,30 @@ int main(void) {
 		data_array[i] = z_gyro_data;
 		i++;
 		itoa(z_gyro_data, z_gyro_char, 10);
+
+
+		// if CW rotation is detected, make a PWM that is linearly proportional to the IMU data
+		if(z_gyro_data >= 30){
+			motorSpeed(z_gyro_data);
+			//spin the motor in CW direction
+			motorCW();
+			motorON();
+		}
+
+		// if CCW motion is detected, make a PWM that is linearly proportional to the IMU data
+		else if(z_gyro_data < -30){
+			// invert the magnitude, so a positive value can be sent to PWM
+			z_gyro_data = z_gyro_data * -1;
+			motorSpeed(z_gyro_data);
+
+			// spin motor CCW
+			motorCCW();
+			motorON();
+		}
+
+		else{
+			motorOFF();
+		}
 
 		Init_Clock();
 //		writeData(z_gyro_char);
