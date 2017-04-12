@@ -1,76 +1,16 @@
-//******************************************************************************
-//   DACQS Host Board - Motor MSP430 - Main IMU Read - eUSCI_A1, SPI 4-Wire Master Incremented Data
-//
-//   Description: SPI master talks to SPI slave using 4-wire mode.
-//   USCI RX ISR is used to handle communication with the CPU, normally in LPM0.
-//
-//	 Setup SPI by configuring the clocks and entering the SPI in master mode.
-//
-//	 When reading from IMU, the MSP430 only has an 8bit SPI mode.
-// 	 -The IMU is 16bits
-//	 -send first 8bit data frame of address, send second 8bit frame of random data
-//   - data you recieve the first time is not current, dont care
-//	 - send a third 8but frame of random, send fourth of random
-//	 - then receive the data originally requested from the first data frame sent
-//   - concatenate the 2 incoming data frames
-// 	 - clear the first two bits, bit 16 and bit 15
-//	 - check if the 14bit data returned is negative or positive by checking bit 14.
-// 	 - if negative, mask bit 15 and bit 16 to ones to make a negative int value.
-//
-//
-//******************************************************************************
-#include <msp430.h>
+/*
+ * daqcs_imu.c
+ *
+ *  Created on: Apr 11, 2017
+ *      Author: stevy
+ */
 
-int read_IMU_SPI(unsigned char register_address);
-void setup_IMU_SPI(void);
+
+#include "driverlib.h"
 
 volatile unsigned char RXData = 0;
 volatile unsigned char RXData2 = 0;
 volatile unsigned char TXData;
-
-int i = 0;
-signed int data_array [500];
-
-//Sensor's Read Register Adddresses
-const unsigned char POWERSUPPLY = 0x02;            	// Power Supply Voltage
-const unsigned char XGYRO = 0x04;                  	// X Gyro Measurement
-const unsigned char YGYRO = 0x06;                  	// Y Gyro Measurement
-//const unsigned char ZGYRO = 0x0008;                  	// Z Gyro Measurement
-const unsigned char ZGYRO = 0x08;                  	// Z Gyro Measurement
-const unsigned char XACCEL = 0x0A;                 	// X Acceleration Measurement
-const unsigned char YACCEL = 0x0C;                 	// Y Acceleration Measurement
-const unsigned char ZACCEL = 0x0E;                 	// Z Acceleration Measurement
-const unsigned char XTEMP = 0x10;                  	// X Temperature Measurement
-const unsigned char YTEMP = 0x12;                  	// Y Temperature Measurement
-const unsigned char ZTEMP = 0x14;                  	// Z Temperature Measurement
-const unsigned char XGYROOFF = 0x1A;			   	// X Gyro Offset
-const unsigned char YGYROOFF = 0x1C;			   	// Y Gyro Offset
-const unsigned char ZGYROOFF = 0x1E;			   	// Z Gyro Offset
-const unsigned char XACCELOFF = 0x20;			   	// X Accel Offset
-const unsigned char YACCELOFF = 0x22;			   	// Y Accel Offset
-const unsigned char ZACCELOFF = 0x24;			   	// Z Accel Offset
-
-//Send/Receive Headers
-const unsigned char READcmd = 0x00;            		// ADIS16350's read command
-const unsigned char WRITEcmd = 0x80;                // ADIS16350's write command
-
-
-int main(void)
-{
-    WDTCTL = WDTPW | WDTHOLD;               // Stop watchdog timer
-
-    setup_IMU_SPI();
-
-    int z_gyro_data;
-
-    while(1)
-    {
-    	z_gyro_data = read_IMU_SPI(ZGYRO);
-    	data_array[i] = z_gyro_data;
-    	i++;
-    	__delay_cycles(200);
-    }
-}
 
 
 void setup_IMU_SPI(void){
@@ -154,9 +94,11 @@ int read_IMU_SPI(unsigned char register_address){
 		// if in Two's comp, make bit 16 and 15 ones. This will allow int to read as a negative number
 		dataOut = dataOut | 0xC000;
 	}
-	
+
 	return dataOut;
 }
+
+
 
 
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)

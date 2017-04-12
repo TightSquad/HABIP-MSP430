@@ -333,6 +333,47 @@ void writeData(char * data){
 	);
 }
 
+void writeDataSameLine(char * data, char * data2){
+
+	//Plugin SDcard interface to SDCard lib
+	SDCardLib_init(&sdCardLib, &sdIntf_MSP430FR5994LP);
+
+	//Detect SD card
+	//SDCardLib_Status st = SDCardLib_detectCard(&sdCardLib);
+//	if (st == SDCARDLIB_STATUS_NOT_PRESENT) {
+//		SDCardLib_unInit(&sdCardLib);
+//		mode = '0';
+//		noSDCard = 1;
+//		return;
+//	}
+
+	rc = f_open(&fil, filename, FA_WRITE | FA_OPEN_EXISTING);
+	if (rc) {
+		f_close(&fil);
+		SDCardLib_unInit(&sdCardLib);
+		return;
+	}
+
+	rc = f_lseek(&fil, f_size(&fil));
+
+	// Log Temperature ADC conversion results to SDCard
+	f_puts(data, &fil);
+	f_puts(" : ", &fil);
+	f_puts(data2, &fil);
+	f_puts("\r\n", &fil);
+	rc = f_close(&fil);
+
+	SDCardLib_unInit(&sdCardLib);
+
+	//Enable SPI module
+	EUSCI_A_SPI_disable(EUSCI_A2_BASE);
+
+	GPIO_setOutputLowOnPin(
+		GPIO_PORT_P5,
+		GPIO_PIN6
+	);
+}
+
 /*
  * Send SDCardLogMode starting TimeStamp through UART
  */
@@ -504,23 +545,23 @@ void storeTimeStampSDCard()
     SDCardLib_init(&sdCardLib, &sdIntf_MSP430FR5994LP);
 
     //Detect SD card
-//    SDCardLib_Status st = SDCardLib_detectCard(&sdCardLib);
-//    if (st == SDCARDLIB_STATUS_NOT_PRESENT) {
-//    	SDCardLib_unInit(&sdCardLib);
-//    	mode = '0';
-//    	return;
-//    }
+    SDCardLib_Status st = SDCardLib_detectCard(&sdCardLib);
+    if (st == SDCARDLIB_STATUS_NOT_PRESENT) {
+    	SDCardLib_unInit(&sdCardLib);
+    	mode = '0';
+    	return;
+    }
 
     //Read directory and file
     rc = SDCardLib_getDirectory(&sdCardLib, "data_log", dirs, &dirNum, files, &fileNum);
 
     //Create the directory under the root directory
     rc = SDCardLib_createDirectory(&sdCardLib, "data_log");
-//    if (rc != FR_OK && rc != FR_EXIST) {
-//    	SDCardLib_unInit(&sdCardLib);
-//    	mode = '0';
-//    	return;
-//    }
+    if (rc != FR_OK && rc != FR_EXIST) {
+    	SDCardLib_unInit(&sdCardLib);
+    	mode = '0';
+    	return;
+    }
 
     char * temp = "SDCard Logging Start Time:\r\n";
 
