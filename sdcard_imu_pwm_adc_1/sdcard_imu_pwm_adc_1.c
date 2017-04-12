@@ -17,6 +17,7 @@
 #include "driverlib.h"
 #include "daqcs_imu.h"
 #include "daqcs_motor.h"
+#include "daqcs_adc.h"
 
 extern int mode;
 extern int pingHost;
@@ -81,6 +82,7 @@ int main(void) {
 //    //initialze the SPI
     //setup_IMU_SPI();
 
+    // create the folder on SD card
     storeTimeStampSDCard();
 
     blinkP1OUT(3);
@@ -92,9 +94,12 @@ int main(void) {
 	//uint32_t currMS;
 	int z_gyro_data;
 	char z_gyro_char[8];
+	char adc_char[8];
+	int current_adc_val;
 
 	int i = 0;
 
+	//start the RTC
 	Init_RTC();
 
 	__delay_cycles(2000);
@@ -102,16 +107,10 @@ int main(void) {
 	// setup the pins and timers for the motor control
 	setupMotor();
 
+	// setup ADC to read from Header J8, SPEED_IN
+	setupADC();
+
 	while (log_num < 500) {
-
-//		writeData(test_data);
-//
-//		currTime = RTC_C_getCalendarTime(RTC_C_BASE);
-//		curr_time = currTime.Seconds;
-//		itoa(curr_time, time_sec, 10);
-
-//		writeData(time_sec);
-
 		//initialze the SPI
 		setup_IMU_SPI();
 
@@ -120,6 +119,7 @@ int main(void) {
 		//store in an array to plot later
 		data_array[i] = z_gyro_data;
 		i++;
+		//convert the zgyro int to a char string
 		itoa(z_gyro_data, z_gyro_char, 10);
 
 
@@ -146,20 +146,25 @@ int main(void) {
 			motorOFF();
 		}
 
-		Init_Clock();
-//		writeData(z_gyro_char);
+		//capture current ADC value
+		current_adc_val = readADC();
+		itoa(current_adc_val, adc_char, 10);
+//		adc_array[i] = current_adc_val;
 
+		Init_Clock();
+
+		//get current time in seconds from RTC_C
 		currTime = RTC_C_getCalendarTime(RTC_C_BASE);
 		curr_sec = currTime.Seconds;
 		itoa(curr_sec, time_sec, 10);
 
-		writeDataSameLine(time_sec, z_gyro_char);
+		// Write the time and gyro data to a single line
+		writeDataSameLine(time_sec, z_gyro_char, adc_char);
 
 		log_num++;
 
-		blinkP1OUT(1);
-
-//		__delay_cycles(2000000);
+		//blink an LED
+		//blinkP1OUT(1);
 	}
 
 	blinkP1OUT(10);

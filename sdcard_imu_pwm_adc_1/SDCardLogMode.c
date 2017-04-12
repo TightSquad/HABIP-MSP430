@@ -333,7 +333,7 @@ void writeData(char * data){
 	);
 }
 
-void writeDataSameLine(char * data, char * data2){
+void writeDataSameLine(char * data, char * data2,  char * data3){
 
 	//Plugin SDcard interface to SDCard lib
 	SDCardLib_init(&sdCardLib, &sdIntf_MSP430FR5994LP);
@@ -360,6 +360,8 @@ void writeDataSameLine(char * data, char * data2){
 	f_puts(data, &fil);
 	f_puts(" : ", &fil);
 	f_puts(data2, &fil);
+	f_puts(" : ", &fil);
+	f_puts(data3, &fil);
 	f_puts("\r\n", &fil);
 	rc = f_close(&fil);
 

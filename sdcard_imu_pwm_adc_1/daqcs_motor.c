@@ -49,9 +49,14 @@ void motorON(void){
 	P4OUT |= BIT0;
 }
 
+void motorSpeed(int duty_cycle){
+	TA1CCR1 = duty_cycle;
+}
+
 void motorOFF(void){
 	//set the P4.0 low high to disable motor
 	P4OUT &= ~BIT0;
+	motorSpeed(0);
 }
 
 void motorCCW(void){
@@ -64,9 +69,7 @@ void motorCW(void){
 	P4OUT |= BIT1;
 }
 
-void motorSpeed(int duty_cycle){
-	TA1CCR1 = duty_cycle;
-}
+
 
 void currentControl(int current_duty_cycle){
 	TA1CCR2 = current_duty_cycle;

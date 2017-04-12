@@ -58,6 +58,6 @@ void sendTimeStampSDCard(void);
 void storeTimeStampSDCard(void);
 char * itoa(int, char *, int);
 void writeData(char * data);
-void writeDataSameLine(char * data, char * data2);
+void writeDataSameLine(char * data, char * data2, char * data3);
 
 #endif /* OUTOFBOX_FR5969_NEWD_SDCARDLOGMODE_H_ */
