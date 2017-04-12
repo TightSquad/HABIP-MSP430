@@ -121,13 +121,26 @@ volatile char uart_index = 0;
 volatile int uart_readDoneFG = 0;
 
 // SPI UD Variables
-//volatile char RXData = '\0';
-//volatile char TXData = '\0';
+//volatile char RXDATA = '\0';
+volatile char TXDATA = '\0';
 volatile char spi_read_buffer[MSG_LEN]={};
 volatile char spi_read_message[MSG_LEN]={};
 volatile char spi_send_message[MSG_LEN]="{B4:ZGY:1450}";
 volatile int msg_return = 0;	//when to respond to SPI master
-volatile char spi_index = 0;
+//volatile int spi_fsm_listening_for_command = 1;
+//volatile int spi_fsm_capturing_command = 0;
+//volatile int spi_fsm_obtaining_data = 0;
+//volatile int spi_fsm_sending_data = 0;
+#define LISTENING_FOR_COMMAND 0x00
+#define CAPTURING_COMMAND 0x01
+#define OBTAINING_DATA 0x02
+#define SENDING_DATA 0x03
+volatile int spi_fsm_state = LISTENING_FOR_COMMAND;
+volatile int spi_index = 0;
+volatile int spi_req_data = 0;
+volatile int spi_data_available = 0;
+volatile int spi_read_index = 0;
+volatile int spi_write_index = 0;
 volatile int spi_readDoneFG = 0;
 
 int main(void)
@@ -146,10 +159,16 @@ int main(void)
 // Configure SPI
     config_SPI_A0_Slave();
 
-    UCA0TXBUF = 0x2B;
+    UCA0TXBUF = 0x58;
 
     __bis_SR_register(LPM0_bits | GIE);
 
+    __no_operation();
+    __delay_cycles(200);
+    if(spi_req_data == 1){
+    	spi_data_available = 1;
+    }
+    __bis_SR_register(LPM0_bits | GIE);
 // Begin Main Code
 //    SPI_read_msg();
 //    SPI_write_msg("Hi from Slave");
@@ -205,55 +224,56 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_SPI_UCRXIFG:
-        	while (!(UCA0IFG&UCTXIFG));             // USCI_B1 TX buffer ready?
-
-        	if(msg_return != 1){
-				spi_read_buffer[spi_index] = UCA0RXBUF;
-				UCA0TXBUF = spi_read_buffer[spi_index];                  // Echo received data
-				if(spi_read_buffer[spi_index] == 0x7D){
-					msg_return = 1;
-					spi_index = 0;
+        	while (!(UCA0IFG&UCTXIFG));             // USCI_A0 TX buffer ready?
+        	spi_read_buffer[spi_index] = UCA0RXBUF;
+        	TXDATA = 0x58;
+        	if(spi_fsm_state == LISTENING_FOR_COMMAND){
+				if(spi_read_buffer[spi_index] == 0x7B){
+					spi_fsm_state = CAPTURING_COMMAND;
+					spi_read_index = 0;
+				}
+				else{
+					spi_index++;
 				}
         	}
-
-//        	if(spi_read_buffer[spi_index] == 0x7D){
-//        		msg_return = 1;
-//				UCA0TXBUF = 0x48;                  // Echo received data
-//			}
-
-        	if(msg_return == 1){
-        		if(spi_send_message[spi_index] == 0x7D){
-        			msg_return = 0;
-        			spi_index = 0;
+        	if(spi_fsm_state == CAPTURING_COMMAND){
+        		spi_read_message[spi_read_index] = spi_read_buffer[spi_index];
+				if(spi_read_message[spi_read_index] == 0x7D){
+					spi_fsm_state = OBTAINING_DATA;
+					spi_req_data = 1;
+					__bic_SR_register_on_exit(LPM0_bits | GIE);
+				}
+				else{
+					spi_read_index++;
+					spi_index++;
+				}
+			}
+        	if(spi_fsm_state == OBTAINING_DATA){
+				if(spi_data_available == 1){
+					spi_fsm_state = SENDING_DATA;
+					spi_write_index = 0;
+				}
+				else{
+					spi_index++;
+				}
+			}
+        	if(spi_fsm_state == SENDING_DATA){
+				TXDATA = spi_send_message[spi_write_index];
+        		if(spi_send_message[spi_write_index] == 0x7D){
+        			spi_fsm_state = LISTENING_FOR_COMMAND;
+        			spi_index++;
         		}
-        		UCA0TXBUF = spi_send_message[spi_index];
+        		else{
+        			spi_write_index++;
+        			spi_index++;
+        		}
         	}
-
-			//UCA0TXBUF = spi_read_buffer[spi_index];                  // Echo received data
-			spi_index++;
+        	if(spi_index == MSG_LEN){
+        		spi_index = 0;
+        	}
+        	UCA0TXBUF = TXDATA;
 			break;
-////            RXData = UCA0RXBUF;
-//            UCA0IFG &= ~UCRXIFG;
-////            __bic_SR_register_on_exit(LPM0_bits); // Wake up to setup next TX
-////            break;
-//            spi_read_buffer[spi_index] = UCA0RXBUF;
-////            UCA0TXBUF = spi_read_buffer[spi_index];
-//			if((spi_read_buffer[spi_index] == EOT)||(spi_index == MSG_LEN-1)) {
-//				unsigned int i;
-//				for(i = 0; i < spi_index; i++) {
-//					spi_read_message[i]=spi_read_buffer[i];
-//				}
-//				spi_read_message[spi_index]='\0';
-//				spi_index = 0;
-//				spi_readDoneFG = 1;
-//			} else {
-//				spi_index++;
-//			}
-//			__no_operation();
-//			break;
         case USCI_SPI_UCTXIFG:
-//            UCA0TXBUF = TXData;                   // Transmit characters
-//            UCA0IE &= ~UCTXIE;
             break;
         default: break;
     }
