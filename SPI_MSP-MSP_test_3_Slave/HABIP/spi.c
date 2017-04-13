@@ -13,6 +13,7 @@
 volatile char spi_read_buffer[MSG_LEN]={};
 volatile char spi_read_message[MSG_LEN]={};
 volatile char spi_send_message[MSG_LEN]="{B4:ZGY:1450}";
+volatile char spi_send_buffer[MSG_LEN]={};
 volatile int msg_return = 0;	//when to respond to SPI master
 volatile int spi_fsm_state = LISTENING_FOR_COMMAND;
 volatile int spi_index = 0;
