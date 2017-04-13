@@ -88,6 +88,7 @@ extern volatile char TXDATA;
 extern volatile char spi_read_buffer[MSG_LEN];
 extern volatile char spi_read_message[MSG_LEN];
 extern volatile char spi_send_message[MSG_LEN];
+extern volatile char spi_send_buffer[MSG_LEN];
 extern volatile int msg_return;	//when to respond to SPI master
 extern volatile int spi_fsm_state;
 extern volatile int spi_index;
@@ -114,7 +115,7 @@ int main(void)
     config_SPI_A0_Slave();
 
     UCA0TXBUF = 0x58;
-
+while(1){
     __bis_SR_register(LPM0_bits | GIE);
 
     __no_operation();
@@ -122,12 +123,12 @@ int main(void)
     if(spi_req_data == 1){
     	spi_data_available = 1;
     }
-    __bis_SR_register(LPM0_bits | GIE);
+//    __bis_SR_register(LPM0_bits | GIE);
 // Begin Main Code
 //    SPI_read_msg();
 //    SPI_write_msg("Hi from Slave");
 // End Main Code
-
+}
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
@@ -208,6 +209,8 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
         	if(spi_fsm_state == OBTAINING_DATA){
 				if(spi_data_available == 1){
 					spi_fsm_state = SENDING_DATA;
+					spi_data_available = 0;
+					spi_req_data = 0;
 					spi_write_index = 0;
 				}
 				else{
@@ -226,10 +229,11 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
         			spi_index++;
         		}
         	}
+        	UCA0TXBUF = TXDATA;
+        	spi_send_buffer[spi_index-1] = TXDATA;
         	if(spi_index == MSG_LEN){
         		spi_index = 0;
         	}
-        	UCA0TXBUF = TXDATA;
 			break;
         case USCI_SPI_UCTXIFG:
             break;
