@@ -7,18 +7,23 @@
 // #include <spi.h>
 #include <msp430.h>
 #include "common.h"
+#include "spi.h"
 
 // SPI UD Variables
 volatile char spi_read_buffer[MSG_LEN]={};
 volatile char spi_read_message[MSG_LEN]={};
-volatile char spi_tx_msg[MSG_LEN]="{00:B4:ZGY}";
-volatile char spi_index = 0;
-volatile char msg_index = 0;
-volatile char spi_read_index = 0;
+volatile char spi_send_message[MSG_LEN]="{B4:ZGY:1450}";
+volatile int msg_return = 0;	//when to respond to SPI master
+volatile int spi_fsm_state = LISTENING_FOR_COMMAND;
+volatile int spi_index = 0;
+volatile int msg_index = 0;
+volatile int spi_req_data = 0;
+volatile int spi_data_available = 0;
+volatile int spi_write_index = 0;
+volatile int spi_read_index = 0;
 volatile int spi_read_enable = 0;
 volatile int spi_readDoneFG = 0;
-volatile char TXDATA ='\0';
-volatile char RXDATA ='\0';
+volatile char TXDATA = '\0';
 
 void config_SPI_B0_Master_GPIO(void){
     // Configure SPI GPIO for Host MSP (MSP-MSP)
@@ -88,17 +93,17 @@ void config_SPI_B1_Slave(void){
    __bis_SR_register(GIE);
 }
 void config_SPI_A0_Slave(void){
-    /*
-     * Dependencies:
-     * config_SPI_A0_Slave_GPIO();
-     * config_XT1_ACLK_32768Hz_DCO_1MHz();
-     */
+	/*
+	 * Dependencies:
+	 * config_SPI_A0_Slave_GPIO();
+	 * config_XT1_ACLK_32768Hz_DCO_1MHz();
+	 */
 // Configure USCI_A0 for SPI operation
    UCA0CTLW0 = UCSWRST;                    // **Put state machine in reset**
 //   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM;   // 4-pin, 8-bit SPI slave
-   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1;   // 4-pin, 8-bit SPI slave
+   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_0;   // 4-pin, 8-bit SPI slave
                                            // Clock polarity high, MSB
-   UCA0CTLW0 |= UCSSEL__SMCLK;             // ACLK
+//   UCA0CTLW0 |= UCSSEL__SMCLK;             // ACLK
    UCA0BRW = 0x02;                         // /2
    UCA0MCTLW = 0;                          // No modulation
    UCA0CTLW0 &= ~UCSWRST;                  // **Initialize USCI state machine**

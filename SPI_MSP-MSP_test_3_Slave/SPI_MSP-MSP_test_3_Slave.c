@@ -76,44 +76,6 @@
 #include <msp430.h>
 #include "driverlib.h" //added for blink LED
 #include "habip.h"
-//
-//// UD Functions
-//
-//	// Clocks
-//void config_XT1_GPIO(void);
-//void config_XT1_ACLK_32768Hz(void);
-//void config_XT1_ACLK_32768Hz_DCO_1MHz(void);
-//void config_DCO_8MHz(void);
-//void config_DCO_1MHz(void);
-//
-//	// UART
-//void config_UART_4_GPIO(void);
-//void config_UART_4_9600_ACLK_32768Hz(void);
-//void config_UART_4_9600_SMCLK_8MHz(void);
-//void UART_read_msg(void);
-//void UART_write_msg(char* message);
-//void chris_init(void);
-//
-//	// SPI
-//void config_SPI_B0_Master_GPIO(void);
-//void config_SPI_B0_Master(void);
-//void config_SPI_B1_Slave_GPIO(void);
-//void config_SPI_B1_Slave(void);
-//void config_SPI_A0_Slave_GPIO(void);
-//void config_SPI_A0_Slave(void);
-//void SPI_read_msg(void);
-//void SPI_write_msg(char* message);
-//
-//	// General
-//void activate_GPIO_config(void);
-//void config_DS4_LED(void);
-//void Toggle_ON_OFF_DS4_LED(void);
-//void delay_LED(void);
-//
-//// UART UD Constants
-////const int END_CHAR=0x7D; // End of Transmission ASCII Character as per Protocol Format
-//const int END_CHAR=4; // End of Transmission ASCII Character
-//#define MSG_LEN 64 // Default for now
 
 // UART UD Variables
 extern volatile char uart_read_buffer[MSG_LEN];
@@ -127,10 +89,6 @@ extern volatile char spi_read_buffer[MSG_LEN];
 extern volatile char spi_read_message[MSG_LEN];
 extern volatile char spi_send_message[MSG_LEN];
 extern volatile int msg_return;	//when to respond to SPI master
-//#define LISTENING_FOR_COMMAND 0x00
-//#define CAPTURING_COMMAND 0x01
-//#define OBTAINING_DATA 0x02
-//#define SENDING_DATA 0x03
 extern volatile int spi_fsm_state;
 extern volatile int spi_index;
 extern volatile int spi_req_data;
@@ -223,6 +181,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
         	while (!(UCA0IFG&UCTXIFG));             // USCI_A0 TX buffer ready?
         	spi_read_buffer[spi_index] = UCA0RXBUF;
         	TXDATA = 0x58;
+// LISTENING_FOR_COMMAND
         	if(spi_fsm_state == LISTENING_FOR_COMMAND){
 				if(spi_read_buffer[spi_index] == 0x7B){
 					spi_fsm_state = CAPTURING_COMMAND;
@@ -232,6 +191,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
 					spi_index++;
 				}
         	}
+// CAPTURING_COMMAND
         	if(spi_fsm_state == CAPTURING_COMMAND){
         		spi_read_message[spi_read_index] = spi_read_buffer[spi_index];
 				if(spi_read_message[spi_read_index] == 0x7D){
@@ -244,6 +204,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
 					spi_index++;
 				}
 			}
+// OBTAINING_DATA
         	if(spi_fsm_state == OBTAINING_DATA){
 				if(spi_data_available == 1){
 					spi_fsm_state = SENDING_DATA;
@@ -253,6 +214,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
 					spi_index++;
 				}
 			}
+// SENDING_DATA
         	if(spi_fsm_state == SENDING_DATA){
 				TXDATA = spi_send_message[spi_write_index];
         		if(spi_send_message[spi_write_index] == 0x7D){

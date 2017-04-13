@@ -9,6 +9,13 @@
 #define SPI_H_
 // #include <msp430.h>
 //#include <common.h>
+
+
+#define LISTENING_FOR_COMMAND 0x00
+#define CAPTURING_COMMAND 0x01
+#define OBTAINING_DATA 0x02
+#define SENDING_DATA 0x03
+
 	// SPI
 void config_SPI_B0_Master_GPIO(void);
 void config_SPI_B0_Master(void);
