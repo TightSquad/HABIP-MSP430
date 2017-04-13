@@ -24,6 +24,6 @@ void config_SPI_B1_Slave(void);
 void config_SPI_A0_Slave_GPIO(void);
 void config_SPI_A0_Slave(void);
 void SPI_read_msg(void);
-void SPI_write_msg(char* message);
+void SPI_command_host_to_slave(char* message,volatile int* read_done,volatile char* TXDATA);
 
 #endif /* SPI_H_ */

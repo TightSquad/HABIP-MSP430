@@ -12,7 +12,8 @@
 // SPI UD Variables
 volatile char spi_read_buffer[MSG_LEN]={};
 volatile char spi_read_message[MSG_LEN]={};
-volatile char spi_send_message[MSG_LEN]="{B4:ZGY:1450}";
+volatile char spi_send_message[MSG_LEN]="{00:B4:ZGY}";
+volatile char spi_send_buffer[MSG_LEN]={};
 volatile int msg_return = 0;	//when to respond to SPI master
 volatile int spi_fsm_state = LISTENING_FOR_COMMAND;
 volatile int spi_index = 0;
@@ -130,18 +131,28 @@ void SPI_read_msg(void){
 //    __bic_SR_register(GIE);
     Toggle_ON_OFF_DS4_LED(); // Optional
 }
-void SPI_write_msg(char* message){
-    int i;
-//  __bis_SR_register(GIE);
-    i = 0;
-    while(message[i] != '\0'){
-        while(!(UCB0IFG&UCTXIFG));
-        UCB0TXBUF = message[i];
-        i++;
+void SPI_command_host_to_slave(char* message,volatile int* read_done,volatile char* TXDATA){
+	UCB0IE |= UCRXIE;
+	int msg_index = 0;
+    *TXDATA = message[msg_index];
+    volatile int dummy_values = 0;
+    while(*read_done == 0)
+    {
+    	UCB0IE |= UCTXIE;
+        __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+        __no_operation();                   // Remain in LPM0
+        __delay_cycles(2000);               // Delay before next transmission
+        if(dummy_values == 0){
+        	if(*TXDATA == 0x7D){
+        		dummy_values = 1;
+        	}
+        	else{
+        		*TXDATA = message[++msg_index];                           // Increment transmit data
+        	}
+        }
+        if (dummy_values == 1){
+        	*TXDATA = 0x58;
+        }
     }
-    while(!(UCB0IFG&UCTXIFG));
-    UCB0TXBUF = END_CHAR;
-//  Toggle_ON_OFF_DS4_LED();
-//  Toggle_ON_OFF_DS4_LED();
-//  __bic_SR_register(GIE);
+    *read_done = 0;
 }
