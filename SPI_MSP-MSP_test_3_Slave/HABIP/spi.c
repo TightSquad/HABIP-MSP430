@@ -12,7 +12,7 @@
 // SPI UD Variables
 volatile char spi_read_buffer[MSG_LEN]={};
 volatile char spi_read_message[MSG_LEN]={};
-volatile char spi_send_message[MSG_LEN]="{00:B4:ZGY}";
+volatile char spi_send_message[MSG_LEN]={};
 volatile char spi_send_buffer[MSG_LEN]={};
 volatile int msg_return = 0;	//when to respond to SPI master
 volatile int spi_fsm_state = LISTENING_FOR_COMMAND;
@@ -29,8 +29,6 @@ volatile char TXDATA = '\0';
 void config_SPI_B0_Master_GPIO(void){
     // Configure SPI GPIO for Host MSP (MSP-MSP)
     // STE/SS & SIMO & SOMI
-//  P1SEL0 &= ~(BIT3 | BIT6 | BIT7);
-//  P1SEL1 |= (BIT3 | BIT6 | BIT7);
     P1SEL0 &= ~(BIT6 | BIT7);
     P1SEL1 |= (BIT6 | BIT7);
     // SCLK
@@ -64,9 +62,8 @@ void config_SPI_B0_Master(void){
      * config_XT1_ACLK_32768Hz_DCO_1MHz();
      */
 // Configure USCI_B0 for SPI operation
+	spi_send_message[MSG_LEN]="{00:B4:ZGY}"; //temp
     UCB0CTLW0 = UCSWRST;                    // **Put state machine in reset**
-//    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM; // 4-pin, 8-bit SPI master
-//    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB | UCMODE_1; // 4-pin, 8-bit SPI master
     UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB; // 3-pin, 8-bit SPI master
                                             // Clock polarity high, MSB
     UCB0CTLW0 |= UCSSEL__ACLK;              // ACLK
@@ -83,12 +80,11 @@ void config_SPI_B1_Slave(void){
      * config_XT1_ACLK_32768Hz_DCO_1MHz();
      */
 // Configure USCI_B1 for SPI operation
+	spi_send_message[MSG_LEN]="{B4:ZGY:1490}"; //temp
    UCB1CTLW0 = UCSWRST;                    // **Put state machine in reset**
-   UCB1CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM;   // 4-pin, 8-bit SPI slave
-                                           // Clock polarity high, MSB
-   UCB1CTLW0 |= UCSSEL__SMCLK;             // ACLK
+   UCB1CTLW0 |= UCSYNC | UCCKPH | UCMSB | UCMODE_2;   // 4-pin, 8-bit SPI slave
+                                           // Clock polarity high, MSB, SS active low
    UCB1BRW = 0x02;                         // /2
-   //UCB1MCTLW = 0;                          // No modulation
    UCB1CTLW0 &= ~UCSWRST;                  // **Initialize USCI state machine**
    UCB1IE |= UCRXIE;                       // Enable USCI_B1 RX interrupt
    __bis_SR_register(GIE);
@@ -100,11 +96,10 @@ void config_SPI_A0_Slave(void){
 	 * config_XT1_ACLK_32768Hz_DCO_1MHz();
 	 */
 // Configure USCI_A0 for SPI operation
+	spi_send_message[MSG_LEN]="{B4:ZGY:1490}"; //temp
    UCA0CTLW0 = UCSWRST;                    // **Put state machine in reset**
-//   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM;   // 4-pin, 8-bit SPI slave
-   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_0;   // 4-pin, 8-bit SPI slave
+   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_0;   // 3-pin, 8-bit SPI slave
                                            // Clock polarity high, MSB
-//   UCA0CTLW0 |= UCSSEL__SMCLK;             // ACLK
    UCA0BRW = 0x02;                         // /2
    UCA0MCTLW = 0;                          // No modulation
    UCA0CTLW0 &= ~UCSWRST;                  // **Initialize USCI state machine**
