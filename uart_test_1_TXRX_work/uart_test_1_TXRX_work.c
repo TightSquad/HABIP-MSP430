@@ -74,39 +74,44 @@
 //   Built with IAR Embedded Workbench V6.30 & Code Composer Studio V6.1
 //******************************************************************************
 #include <msp430.h>
-#include <driverlib.h> //added for blink LED
+#include "driverlib.h"
+#include "habip.h"
 
-// UD Functions
-void activate_GPIO_config(void);
+//// UD Functions
+//void activate_GPIO_config(void);
+//
+//void config_XT1_GPIO(void);
+//void config_XT1_ACLK_32768Hz(void);
+//void config_DCO_8MHz(void);
+//void config_DCO_1MHz(void);
+//
+//void config_UART_4_GPIO(void);
+//void config_UART_4_9600_ACLK_32768Hz(void);
+//void config_UART_4_9600_SMCLK_8MHz(void);
+//void UART_read_msg(void);
+//void UART_write_msg(char* message);
+//void chris_init(void);
+//
+//void config_DS4_LED(void);
+//void Toggle_ON_OFF_DS4_LED(void);
+//void delay_LED(void);
 
-void config_XT1_GPIO(void);
-void config_XT1_ACLK_32768Hz(void);
-void config_DCO_8MHz(void);
-void config_DCO_1MHz(void);
 
-void config_UART_4_GPIO(void);
-void config_UART_4_9600_ACLK_32768Hz(void);
-void config_UART_4_9600_SMCLK_8MHz(void);
-void UART_read_msg(void);
-void UART_write_msg(char* message);
-void chris_init(void);
-
-void config_DS4_LED(void);
-void Toggle_ON_OFF_DS4_LED(void);
-void delay_LED(void);
-
-
-// UART UD Constants
-//const int EOT=0x7D; // End of Transmission ASCII Character as per Protocol Format
-const int EOT=4; // End of Transmission ASCII Character
-#define MSG_LEN 64 // Default for now
+//// UART UD Constants
+//#define END_CHAR 0x7D // End of Transmission ASCII Character as per Protocol Format
+//#define MSG_LEN 64 // Default for now
+//
+//#define LISTENING_FOR_RESPONSE 0x00
+//#define CAPTURING_RESPONSE 0x01
 
 // UART UD Variables
-volatile char uart_read_buffer[MSG_LEN]={};
-volatile char uart_read_message[MSG_LEN]={};
-char uart_index = 0;
-volatile int uart_readDoneFG = 0;
-
+extern volatile char uart_read_buffer[MSG_LEN];
+extern volatile char uart_read_message[MSG_LEN];
+extern volatile int uart_index;
+extern volatile int uart_readDoneFG;
+extern volatile int uart_fsm_state;
+extern volatile int uart_read_index;
+//*********************************************************************************************************//
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;               // Stop Watchdog
@@ -124,7 +129,7 @@ int main(void)
 //    config_UART_4_9600_ACLK_32768Hz();
     config_UART_4_9600_SMCLK_8MHz();
 
-//    chris_init();
+    __bis_SR_register(GIE);
 
 // Begin Main Code
     UART_read_msg();
@@ -133,7 +138,7 @@ int main(void)
 
 	while(1) ; // catchall for debug
 }
-
+//*********************************************************************************************************//
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=EUSCI_A3_VECTOR
 __interrupt void USCI_A3_ISR(void)
@@ -147,253 +152,37 @@ void __attribute__ ((interrupt(EUSCI_A3_VECTOR))) USCI_A3_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:
-            uart_read_buffer[uart_index] = UCA3RXBUF;
-//            UCA3TXBUF = uart_read_buffer[uart_index];
-            if((uart_read_buffer[uart_index] == EOT)||(uart_index == MSG_LEN-1)) {
-            	int i;
-            	for(i = 0; i < uart_index; i++) {
-            		uart_read_message[i]=uart_read_buffer[i];
-            	}
-            	uart_read_message[uart_index]='\0';
-            	uart_index = 0;
-            	uart_readDoneFG = 1;
-            } else {
-            	uart_index++;
-            }
-            __no_operation();
-            break;
+        	while (!(UCA3IFG&UCTXIFG));             // USCI_A0 TX buffer ready?
+        	uart_read_buffer[uart_index] = UCA3RXBUF;
+// LISTENING_FOR_RESPONSE
+        	if(uart_fsm_state == LISTENING_FOR_RESPONSE){
+				if(uart_read_buffer[uart_index] == 0x7B){
+					uart_fsm_state = CAPTURING_RESPONSE;
+					uart_read_index = 0; // May cause overwriting in future
+				}
+				else{
+					uart_index++;
+				}
+        	}
+// CAPTURING_RESPONSE
+        	if(uart_fsm_state == CAPTURING_RESPONSE){
+        		uart_read_message[uart_read_index] = uart_read_buffer[uart_index];
+				if(uart_read_message[uart_read_index] == 0x7D){
+					uart_fsm_state = LISTENING_FOR_RESPONSE;
+					uart_readDoneFG = 1; // reset where?
+				}
+				else{
+					uart_read_index++;
+					uart_index++;
+				}
+			}
+        	if(uart_index == MSG_LEN){
+        		uart_index = 0;
+        	}
+			break;
         case USCI_UART_UCTXIFG: break;
         case USCI_UART_UCSTTIFG: break;
         case USCI_UART_UCTXCPTIFG: break;
         default: break;
     }
-}
-void activate_GPIO_config(void){
-	/*Scope: Run after configured GPIO to activate the config*/
-	// Disable the GPIO power-on default high-impedance mode to activate
-	// previously configured port settings
-    PMM_unlockLPM5();
-	//PM5CTL0 &= ~LOCKLPM5;
-}
-void config_UART_4_GPIO(void){
-	P6SEL1 &= ~(BIT0 | BIT1);
-	P6SEL0 |= (BIT0 | BIT1);				// USCI_A3 UART operation
-	activate_GPIO_config();
-}
-void config_UART_4_9600_ACLK_32768Hz(void){
-// Configure USCI_A3 for UART mode
-	/* Dependencies
-	 * config_XT1_ACLK_32768Hz();
-	 */
-    UCA3CTLW0 = UCSWRST;                    // Put eUSCI in reset
-    UCA3CTLW0 = 0x0000;
-    UCA3CTLW0 |= UCSSEL__ACLK;              // CLK = ACLK
-    UCA3BRW = 3;                            // 9600 baud
-    UCA3MCTLW |= 0x5300;                    // 32768/9600 - INT(32768/9600)=0.41
-                                            // UCBRSx value = 0x53 (See UG)
-    UCA3CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
-}
-void config_UART_4_9600_SMCLK_8MHz(void){
-// Configure USCI_A3 for UART mode
-	/* Dependencies:
-	 * config_DCO_8MHz();
-	 */
-	UCA3CTLW0 = UCSWRST;                    // Put eUSCI in reset
-	UCA3CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
-	// Baud Rate calculation
-	// 8000000/(16*9600) = 52.083
-	// Fractional portion = 0.083
-	// User's Guide Table 21-4: UCBRSx = 0x04
-	// UCBRFx = int ( (52.083-52)*16) = 1
-	UCA3BRW = 52;                           // 8000000/16/9600
-	UCA3MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
-	UCA3CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
-	UCA3IE |= UCRXIE;                       // Enable USCI_A3 RX interrupt
-}
-void config_XT1_GPIO(void){
-	PJSEL0 |= BIT4 | BIT5;                  // For XT1
-	activate_GPIO_config();
-}
-void config_XT1_ACLK_32768Hz(void){
-	/*Dependencies:
-	 * config_XT1_GPIO();
-	 */
-// XT1 Setup
-    CSCTL0_H = CSKEY_H;                     // Unlock CS registers
-    CSCTL2 = SELA__LFXTCLK | SELS__DCOCLK | SELM__DCOCLK;
-    CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1;   // Set all dividers
-    CSCTL4 &= ~LFXTOFF;
-    do
-    {
-        CSCTL5 &= ~LFXTOFFG;                // Clear XT1 fault flag
-        SFRIFG1 &= ~OFIFG;
-    } while (SFRIFG1 & OFIFG);              // Test oscillator fault flag
-    CSCTL0_H = 0;                           // Lock CS registers
-}
-
-void config_DCO_8MHz(void){
-// Startup clock system with max DCO setting ~8MHz
-	CSCTL0_H = CSKEY_H;                     // Unlock CS registers
-	CSCTL1 = DCOFSEL_3 | DCORSEL;           // Set DCO to 1MHz
-	//					ACLK			SMCLK			MCLK
-	CSCTL2 = SELA__VLOCLK | SELS__DCOCLK | SELM__DCOCLK; // select clock sources
-	CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1;   // Set all dividers
-	CSCTL0_H = 0;                           // Lock CS registers
-}
-
-void config_DCO_1MHz(void){
-// Startup clock system with max DCO setting ~8MHz
-	CSCTL0_H = CSKEY_H;                     // Unlock CS registers
-//	CSCTL1 = 0x0000;
-//	CSCTL1 = DCOFSEL_3 | DCORSEL;           // Set DCO to 8MHz
-//					ACLK			SMCLK			MCLK
-	CSCTL2 = SELA__VLOCLK | SELS__DCOCLK | SELM__DCOCLK;
-	CSCTL3 = DIVA__1 | DIVS__1 | DIVM__1;   // Set all dividers
-	CSCTL0_H = 0;                           // Lock CS registers
-}
-
-void UART_read_msg(void){
-	int i;
-	// clear last message
-	for(i=0;i<MSG_LEN;i++){
-		uart_read_message[i] = 0;
-	}
-	uart_readDoneFG = 0;
-    UCA3IE |= UCRXIE;                        // Enable USCI_A3 RX interrupt
-    __bis_SR_register(GIE);
-    while(uart_readDoneFG == 0) ;
-    UCA3IE &= ~UCRXIE;                       // Disable USCI_A3 RX interrupt
-    __bic_SR_register(GIE);
-    Toggle_ON_OFF_DS4_LED(); // Optional
-}
-
-void UART_write_msg(char* message){
-	int i;
-	__bis_SR_register(GIE);
-	i = 0;
-	while(message[i] != '\0'){
-		while(!(UCA3IFG&UCTXIFG));
-		UCA3TXBUF = message[i];
-//		EUSCI_A_UART_transmitData(EUSCI_A3_BASE,
-//		                                  message[i]);
-//		__no_operation();
-		i++;
-	}
-	while(!(UCA3IFG&UCTXIFG));
-	UCA3TXBUF = EOT;
-//	EUSCI_A_UART_transmitData(EUSCI_A3_BASE,
-//	                                  EOT);
-//	__no_operation();
-	Toggle_ON_OFF_DS4_LED();
-	Toggle_ON_OFF_DS4_LED();
-	__bic_SR_register(GIE);
-}
-
-void config_DS4_LED(void){
-    GPIO_setAsOutputPin(					// config P1.0 (DS4 LED) GPIO as output
-            GPIO_PORT_P1,
-            GPIO_PIN0
-            );
-    activate_GPIO_config();
-}
-void Toggle_ON_OFF_DS4_LED(void){
-	/*Scope: Toggles LED ON/OFF once when message received*/
-	/*Dependencies:
-	#include <driverlib.h>
-	config_DS4_LED();
-	*/
-	GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
-	// Delay
-	delay_LED();
-    // Toggle P1.0 output
-	GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-	// Delay
-	delay_LED();
-	// Toggle P1.0 output
-	GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-}
-
-void delay_LED(void){
-	int i;
-	int j;
-	for(i=1000;i>0;i--){
-		__no_operation();
-		for(j=1000;j>0;j--) {
-			__no_operation();
-		}
-	}
-}
-
-void chris_init(void){
-    // LFXT Setup
-    //Set PJ.4 and PJ.5 as Primary Module Function Input.
-    /*
-
-     * Select Port J
-     * Set Pin 4, 5 to input Primary Module Function, LFXT.
-     */
-    GPIO_setAsPeripheralModuleFunctionInputPin(
-        GPIO_PORT_PJ,
-        GPIO_PIN4 + GPIO_PIN5,
-        GPIO_PRIMARY_MODULE_FUNCTION
-        );
-
-    //Set DCO frequency to 1 MHz
-    CS_setDCOFreq(CS_DCORSEL_0,CS_DCOFSEL_0);
-    //Set external clock frequency to 32.768 KHz
-    CS_setExternalClockSource(32768,0);
-    //Set ACLK=LFXT
-    CS_initClockSignal(CS_ACLK,CS_LFXTCLK_SELECT,CS_CLOCK_DIVIDER_1);
-    //Set SMCLK = DCO with frequency divider of 1
-    CS_initClockSignal(CS_SMCLK,CS_DCOCLK_SELECT,CS_CLOCK_DIVIDER_1);
-    //Set MCLK = DCO with frequency divider of 1
-    CS_initClockSignal(CS_MCLK,CS_DCOCLK_SELECT,CS_CLOCK_DIVIDER_1);
-    //Start XT1 with no time out
-    CS_turnOnLFXT(CS_LFXT_DRIVE_0);
-
-    // Configure UART pins
-    //Set P6.0 and P6.1 as Secondary Module Function Input.
-    /*
-
-     * Select Port 6
-     * Set Pin 0, 1 to input Secondary Module Function, (UCA3TXD/UCA3SIMO, UCA3RXD/UCA3SOMI).
-     */
-    GPIO_setAsPeripheralModuleFunctionInputPin(
-        GPIO_PORT_P6,
-        GPIO_PIN0 + GPIO_PIN1,
-        GPIO_PRIMARY_MODULE_FUNCTION
-        );
-
-    /*
-     * Disable the GPIO power-on default high-impedance mode to activate
-     * previously configured port settings
-     */
-    PMM_unlockLPM5();
-
-    // Configure UART
-    EUSCI_A_UART_initParam param = {0};
-    param.selectClockSource = EUSCI_A_UART_CLOCKSOURCE_ACLK;
-    param.clockPrescalar = 3;
-    param.firstModReg = 0;
-    param.secondModReg = 146;
-    param.parity = EUSCI_A_UART_NO_PARITY;
-    param.msborLsbFirst = EUSCI_A_UART_LSB_FIRST;
-    param.numberofStopBits = EUSCI_A_UART_ONE_STOP_BIT;
-    param.uartMode = EUSCI_A_UART_MODE;
-    param.overSampling = EUSCI_A_UART_LOW_FREQUENCY_BAUDRATE_GENERATION;
-
-    if(STATUS_FAIL == EUSCI_A_UART_init(EUSCI_A3_BASE, &param))
-    {
-        return;
-    }
-
-    EUSCI_A_UART_enable(EUSCI_A3_BASE);
-
-    EUSCI_A_UART_clearInterrupt(EUSCI_A3_BASE,
-                                EUSCI_A_UART_RECEIVE_INTERRUPT);
-
-    // Enable USCI_A3 RX interrupt
-    EUSCI_A_UART_enableInterrupt(EUSCI_A3_BASE,
-                                 EUSCI_A_UART_RECEIVE_INTERRUPT); // Enable interrupt
-
 }
