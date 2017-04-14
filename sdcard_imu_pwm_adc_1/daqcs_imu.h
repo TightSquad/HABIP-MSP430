@@ -11,6 +11,7 @@
 #include <msp430.h>
 #include <driverlib.h>
 
+void write_IMU_SPI(unsigned int register_address, unsigned char date_write);
 int read_IMU_SPI(unsigned char register_address);
 void setup_IMU_SPI(void);
 
@@ -32,6 +33,10 @@ const unsigned char ZGYROOFF = 0x1E;			   	// Z Gyro Offset
 const unsigned char XACCELOFF = 0x20;			   	// X Accel Offset
 const unsigned char YACCELOFF = 0x22;			   	// Y Accel Offset
 const unsigned char ZACCELOFF = 0x24;			   	// Z Accel Offset
+
+const unsigned char SMPL_PRD = 0x36;			   	// Z Accel Offset
+const unsigned char SMPL_PRD_1 = 0x07;			   	// Z Accel Offset
+
 
 //Send/Receive Headers
 const unsigned char READcmd = 0x00;            		// ADIS16350's read command

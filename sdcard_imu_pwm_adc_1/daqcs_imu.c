@@ -11,6 +11,7 @@
 volatile unsigned char RXData = 0;
 volatile unsigned char RXData2 = 0;
 volatile unsigned char TXData;
+volatile unsigned int RX_flag = 0;
 
 
 void setup_IMU_SPI(void){
@@ -29,7 +30,7 @@ void setup_IMU_SPI(void){
     CSCTL1 = DCOFSEL_0;                     // Set DCO to 1MHz
     CSCTL1 &= ~DCORSEL;
     CSCTL2 = SELA__LFXTCLK | SELS__DCOCLK | SELM__DCOCLK;
-    CSCTL3 = DIVA__16 | DIVS__16 | DIVM__16;   // Set all dividers
+    CSCTL3 = DIVA__16 | DIVA__16 | DIVA__16;   // Set all dividers
     CSCTL4 &= ~LFXTOFF;
     do
     {
@@ -38,19 +39,39 @@ void setup_IMU_SPI(void){
     } while (SFRIFG1 & OFIFG);              // Test oscillator fault flag
     CSCTL0_H = 0;                           // Lock CS registers
 
-    // Configure USCI_B1 for SPI operation
+    // Configure USCI_A1 for SPI operation
     UCA1CTLW0 = UCSWRST;                    // **Put state machine in reset**
                                             // 4-pin, 8-bit SPI master
     UCA1CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB | UCMODE_2 | UCSTEM;
                                             // Clock polarity high, MSB
     //UCB1CTLW0 |= UCSSEL__ACLK;              // ACLK
     UCA1CTLW0 |= UCSSEL_2;              	// SMCLK
-    UCA1BRW = 0x4;                         // /4
+    UCA1BRW = 0x04;                         // /4
     UCA1CTLW0 &= ~UCSWRST;                  // **Initialize USCI state machine**
     UCA1IE |= UCRXIE;                       // Enable USCI_A1 RX interrupt
 
 }
 
+
+void write_IMU_SPI(unsigned int register_address, unsigned char date_write){
+	signed int dataOut = 0;
+	// ADIS16350's read filler (Dont care bits after register addr)
+	const unsigned char READFILLER = 0x5A;
+
+	register_address = register_address | 0x80;
+
+	//write the address you want to read
+	TXData = register_address;
+	UCA1IE |= UCTXIE;
+    __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+
+    //send filler data to make total data frame 16 bits
+    TXData = date_write;
+    UCA1IE |= UCTXIE;
+    __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+
+	return;
+}
 
 int read_IMU_SPI(unsigned char register_address){
 	signed int dataOut = 0;

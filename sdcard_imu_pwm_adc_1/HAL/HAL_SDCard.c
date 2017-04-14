@@ -57,8 +57,8 @@
 #define SD_CS_OUT       P5OUT
 #define SD_CS_DIR       P5DIR
 
-#define CLOCK_FREQ             8000000
-#define DESIRED_SPI_FREQ       400000
+#define CLOCK_FREQ             16000000
+#define DESIRED_SPI_FREQ       4000000
 #define DESIRED_SPI_FAST_FREQ  4000000
 
 SDCardLib_Interface sdIntf_MSP430FR5994LP = {

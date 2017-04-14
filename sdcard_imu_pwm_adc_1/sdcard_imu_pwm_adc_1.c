@@ -110,12 +110,21 @@ int main(void) {
 	// setup ADC to read from Header J8, SPEED_IN
 	setupADC();
 
+	//Init_Clock();
+
+	//setup_IMU_SPI();
+	//write_IMU_SPI(SMPL_PRD, SMPL_PRD_1);
+
 	while (log_num < 500) {
 		//initialze the SPI
 		setup_IMU_SPI();
 
+		GPIO_setOutputHighOnPin(GPIO_PORT_P7, GPIO_PIN5);
 		// grab IMU data
 		z_gyro_data = read_IMU_SPI(ZGYRO);
+		GPIO_setOutputLowOnPin(GPIO_PORT_P7, GPIO_PIN5);
+
+
 		//store in an array to plot later
 		data_array[i] = z_gyro_data;
 		i++;
@@ -158,13 +167,17 @@ int main(void) {
 		curr_sec = currTime.Seconds;
 		itoa(curr_sec, time_sec, 10);
 
+		//GPIO_setOutputHighOnPin(GPIO_PORT_P7, GPIO_PIN5);
 		// Write the time and gyro data to a single line
 		writeDataSameLine(time_sec, z_gyro_char, adc_char);
+
+		//writeData(time_sec);
+		//GPIO_setOutputLowOnPin(GPIO_PORT_P7, GPIO_PIN5);
 
 		log_num++;
 
 		//blink an LED
-		//blinkP1OUT(1);
+		blinkP1OUT(1);
 	}
 
 	blinkP1OUT(10);
@@ -194,7 +207,7 @@ void Init_GPIO()
 //    GPIO_setAsOutputPin(GPIO_PORT_P4, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
 //    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
 //    GPIO_setAsOutputPin(GPIO_PORT_P6, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
-//    GPIO_setAsOutputPin(GPIO_PORT_P7, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
+    GPIO_setAsOutputPin(GPIO_PORT_P7, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
 //    GPIO_setAsOutputPin(GPIO_PORT_P8, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
 //    GPIO_setAsOutputPin(GPIO_PORT_PJ, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7|GPIO_PIN8|GPIO_PIN9|GPIO_PIN10|GPIO_PIN11|GPIO_PIN12|GPIO_PIN13|GPIO_PIN14|GPIO_PIN15);
 
@@ -221,7 +234,7 @@ void Init_GPIO()
 void Init_Clock()
 {
     // Set DCO frequency to 8 MHz
-    CS_setDCOFreq(CS_DCORSEL_0, CS_DCOFSEL_6);
+    CS_setDCOFreq(CS_DCORSEL_1, CS_DCOFSEL_4);
     //Set external clock frequency to 32.768 KHz
     CS_setExternalClockSource(32768, 0);
     //Set ACLK=LFXT
