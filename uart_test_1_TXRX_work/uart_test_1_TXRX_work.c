@@ -76,6 +76,7 @@
 #include <msp430.h>
 #include "driverlib.h"
 #include "habip.h"
+#include "stdlib.h"
 
 //// UD Functions
 //void activate_GPIO_config(void);
@@ -107,10 +108,59 @@
 // UART UD Variables
 extern volatile char uart_read_buffer[MSG_LEN];
 extern volatile char uart_read_message[MSG_LEN];
+extern volatile char* uart_response;
 extern volatile int uart_index;
 extern volatile int uart_readDoneFG;
 extern volatile int uart_fsm_state;
 extern volatile int uart_read_index;
+extern volatile int RXSWFG0;
+extern volatile int RXSWFG1;
+extern volatile int RXSWFG2;
+extern volatile int RXSWFG3;
+
+char* commands[2] = {	"{00:B0:V}",
+						"{00:B0:C}"
+					};
+
+// Pi Hat Board Sensor Info Indicies
+#define PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE 10
+#define PI_HAT_SENSOR_RESPONSE_MSG_SIZE 17
+#define PI_TD0 0
+#define PI_TB0 1
+#define PI_TB1 2
+#define PI_TE0 3
+#define PI_TE1 4
+#define PI_P0 5
+#define PI_P1 6
+#define PI_H 7
+#define PI_V 8
+#define PI_C 9
+char response_buffer_b0[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
+char response_buffer_b1[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
+char response_buffer_b2[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
+char response_buffer_b3[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
+
+// DAQCS Board Sensor Info Indicies
+#define DAQCS_SENSOR_RESPONSE_ARRAY_SIZE 16
+#define DAQCS_SENSOR_RESPONSE_MSG_SIZE 17
+#define DQ_TB0 0
+#define DQ_P0 1
+#define DQ_PB 2
+#define DQ_V 3
+#define DQ_C 4
+#define DQ_XGY 5
+#define DQ_XAC 6
+#define DQ_YGY 7
+#define DQ_YAC 8
+#define DQ_ZGY 9
+#define DQ_ZAC 10
+#define DQ_MS 11
+#define DQ_MC 12
+#define DQ_MV 13
+#define DQ_MD 14
+#define DQ_ME 15
+char response_buffer_b4[DAQCS_SENSOR_RESPONSE_ARRAY_SIZE][DAQCS_SENSOR_RESPONSE_MSG_SIZE]={};
+
 //*********************************************************************************************************//
 int main(void)
 {
@@ -118,7 +168,7 @@ int main(void)
 
 // Configure GPIO
     config_DS4_LED();
-    config_UART_4_GPIO();
+    config_UART_B3_GPIO();
 //    config_XT1_GPIO();						// XT1 Crystal
 
 // Configure Clock
@@ -127,18 +177,82 @@ int main(void)
 
 // Configure UART
 //    config_UART_4_9600_ACLK_32768Hz();
-    config_UART_4_9600_SMCLK_8MHz();
+    config_UART_B3_9600_SMCLK_8MHz();
 
     __bis_SR_register(GIE);
 
 // Begin Main Code
-    UART_read_msg();
-    UART_write_msg("Hi from MSP");
+    UART_B3_read_response(&RXSWFG3);
+//    array_copy(uart_read_message,response[0]);
+    UART_write_msg(commands[1]);
 // End Main Code
 
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=EUSCI_A0_VECTOR
+__interrupt void USCI_A0_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    switch(__even_in_range(UCA0IV, USCI_UART_UCTXCPTIFG))
+    {
+        case USCI_NONE: break;
+        case USCI_UART_UCRXIFG:
+        	RXSWFG0 = 1;
+			break;
+        case USCI_UART_UCTXIFG: break;
+        case USCI_UART_UCSTTIFG: break;
+        case USCI_UART_UCTXCPTIFG: break;
+        default: break;
+    }
+}
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=EUSCI_A1_VECTOR
+__interrupt void USCI_A1_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(EUSCI_A1_VECTOR))) USCI_A1_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    switch(__even_in_range(UCA1IV, USCI_UART_UCTXCPTIFG))
+    {
+        case USCI_NONE: break;
+        case USCI_UART_UCRXIFG:
+        	RXSWFG1 = 1;
+			break;
+        case USCI_UART_UCTXIFG: break;
+        case USCI_UART_UCSTTIFG: break;
+        case USCI_UART_UCTXCPTIFG: break;
+        default: break;
+    }
+}
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=EUSCI_A2_VECTOR
+__interrupt void USCI_A2_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(EUSCI_A2_VECTOR))) USCI_A2_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    switch(__even_in_range(UCA2IV, USCI_UART_UCTXCPTIFG))
+    {
+        case USCI_NONE: break;
+        case USCI_UART_UCRXIFG:
+        	RXSWFG2 = 1;
+			break;
+        case USCI_UART_UCTXIFG: break;
+        case USCI_UART_UCSTTIFG: break;
+        case USCI_UART_UCTXCPTIFG: break;
+        default: break;
+    }
+}
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=EUSCI_A3_VECTOR
 __interrupt void USCI_A3_ISR(void)
@@ -152,33 +266,7 @@ void __attribute__ ((interrupt(EUSCI_A3_VECTOR))) USCI_A3_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:
-        	while (!(UCA3IFG&UCTXIFG));             // USCI_A0 TX buffer ready?
-        	uart_read_buffer[uart_index] = UCA3RXBUF;
-// LISTENING_FOR_RESPONSE
-        	if(uart_fsm_state == LISTENING_FOR_RESPONSE){
-				if(uart_read_buffer[uart_index] == 0x7B){
-					uart_fsm_state = CAPTURING_RESPONSE;
-					uart_read_index = 0; // May cause overwriting in future
-				}
-				else{
-					uart_index++;
-				}
-        	}
-// CAPTURING_RESPONSE
-        	if(uart_fsm_state == CAPTURING_RESPONSE){
-        		uart_read_message[uart_read_index] = uart_read_buffer[uart_index];
-				if(uart_read_message[uart_read_index] == 0x7D){
-					uart_fsm_state = LISTENING_FOR_RESPONSE;
-					uart_readDoneFG = 1; // reset where?
-				}
-				else{
-					uart_read_index++;
-					uart_index++;
-				}
-			}
-        	if(uart_index == MSG_LEN){
-        		uart_index = 0;
-        	}
+        	RXSWFG3 = 1;
 			break;
         case USCI_UART_UCTXIFG: break;
         case USCI_UART_UCSTTIFG: break;
