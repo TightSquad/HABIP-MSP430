@@ -48,7 +48,8 @@ void enterLPM35(void);
 void blinkP1OUT(int blink_number);
 
 
-signed int data_array [1000];
+signed int data_array [500];
+signed int ms_array [500];
 
 
 //-----------------------------------------------------------------------------
@@ -90,6 +91,7 @@ int main(void) {
 	int log_num = 0;
 	char test_data[] = "how are you";
 	char time_sec[8];
+	char curr_ms[8];
 	int curr_sec;
 	//uint32_t currMS;
 	int z_gyro_data;
@@ -115,7 +117,7 @@ int main(void) {
 	//setup_IMU_SPI();
 	//write_IMU_SPI(SMPL_PRD, SMPL_PRD_1);
 
-	SDFindOpenNewFile();
+	//SDFindOpenNewFile();
 
 	while (log_num < 1000) {
 		//initialze the SPI
@@ -166,13 +168,18 @@ int main(void) {
 		curr_sec = currTime.Seconds;
 		itoa(curr_sec, time_sec, 10);
 
-		GPIO_setOutputHighOnPin(GPIO_PORT_P7, GPIO_PIN5);
+		//itoa(curr_ms, TB0R, 10);
+		ms_array[i] = TB0R;
+		itoa(ms_array[i], curr_ms, 10);
+
+		//GPIO_setOutputHighOnPin(GPIO_PORT_P7, GPIO_PIN5);
 		// Write the time and gyro data to a single line
 		//writeDataSameLine(time_sec, z_gyro_char, adc_char);
-		writeDataSameLine_2(time_sec, z_gyro_char, adc_char);
+		//writeDataSameLine_4(time_sec, curr_ms, z_gyro_char, adc_char);
+		writeDataSameLine(curr_ms, z_gyro_char, adc_char);
 
 		//writeData(time_sec);
-		GPIO_setOutputLowOnPin(GPIO_PORT_P7, GPIO_PIN5);
+		//GPIO_setOutputLowOnPin(GPIO_PORT_P7, GPIO_PIN5);
 
 		log_num++;
 
@@ -180,7 +187,7 @@ int main(void) {
 		blinkP1OUT(1);
 	}
 
-	SDCloseSPI();
+	//SDCloseSPI();
 	GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
 	while(1);
 }
@@ -279,6 +286,12 @@ void Init_RTC()
                           RTC_C_TIME_EVENT_INTERRUPT
                           );
 
+    TB0CTL |= TBSSEL_1 + ID_2;
+    //enable interrupt
+    //TB0CCTL0 |= CCIE;
+    TBCCR0 = 0x1FE0;
+    TB0CTL |= MC_1;
+
     //Start RTC Clock
     RTC_C_startClock(RTC_C_BASE);
 }
@@ -315,6 +328,15 @@ void blinkP1OUT(int blink_number){
 		GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN0);
 		__delay_cycles(5000);
 	}
+}
+
+
+
+#pragma vector=TIMER0_B0_VECTOR
+__interrupt void TIMER_B0_ISR(void)
+{
+	TB0CCTL1 &= ~(CCIFG);
+	GPIO_toggleOutputOnPin(GPIO_PORT_P7, GPIO_PIN5);
 }
 
 
