@@ -121,8 +121,7 @@ char* board_list[5] = {	"B0", // Pi Hat 0 - UCA0 - "UART_1" - J1
 		};
 
 // Pi Hat Board Sensor Info Indicies
-#define PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE 10
-#define PI_HAT_SENSOR_RESPONSE_MSG_SIZE 17
+#define PI_HAT_SENSOR_CNT 10
 #define PI_TD0 0
 #define PI_TB0 1
 #define PI_TB1 2
@@ -133,15 +132,13 @@ char* board_list[5] = {	"B0", // Pi Hat 0 - UCA0 - "UART_1" - J1
 #define PI_H 7
 #define PI_V 8
 #define PI_C 9
-char response_buffer_b0[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
-char response_buffer_b1[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
-char response_buffer_b2[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
-char response_buffer_b3[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
-
+char response_buffer_b0[PI_HAT_SENSOR_CNT][MSG_LEN]={};
+char response_buffer_b1[PI_HAT_SENSOR_CNT][MSG_LEN]={};
+char response_buffer_b2[PI_HAT_SENSOR_CNT][MSG_LEN]={};
+char response_buffer_b3[PI_HAT_SENSOR_CNT][MSG_LEN]={};
 
 // DAQCS Board Sensor Info Indicies
-#define DAQCS_SENSOR_RESPONSE_ARRAY_SIZE 16
-#define DAQCS_SENSOR_RESPONSE_MSG_SIZE 17
+#define DAQCS_SENSOR_CNT 16
 #define DQ_TB0 0
 #define DQ_P0 1
 #define DQ_PB 2
@@ -158,17 +155,17 @@ char response_buffer_b3[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONS
 #define DQ_MV 13
 #define DQ_MD 14
 #define DQ_ME 15
-char response_buffer_b4[DAQCS_SENSOR_RESPONSE_ARRAY_SIZE][DAQCS_SENSOR_RESPONSE_MSG_SIZE]={};
+char response_buffer_b4[DAQCS_SENSOR_CNT][MSG_LEN]={};
 
 // response_buffer data status
 #define OLD 0x00
 #define NEW 0x01
 #define ERROR 0xEE
-char response_status_b0 = OLD;
-char response_status_b1 = OLD;
-char response_status_b2 = OLD;
-char response_status_b3 = OLD;
-char response_status_b4 = OLD;
+char response_status_b0[PI_HAT_SENSOR_CNT] = {{OLD}};
+char response_status_b1[PI_HAT_SENSOR_CNT] = {{OLD}};
+char response_status_b2[PI_HAT_SENSOR_CNT] = {{OLD}};
+char response_status_b3[PI_HAT_SENSOR_CNT] = {{OLD}};
+char response_status_b4[DAQCS_SENSOR_CNT] = {{OLD}};
 
 //temp
 void test_strcmp(void);
@@ -177,6 +174,11 @@ void test_strcat(void);
 void test_extraction_command(void);
 void test_strstr(void);
 void test_removing_7B(void);
+void test_removing_7D(void);
+void test_strtok(void);
+void rmv_start_end_chars(void);
+
+//int get_colon_count(const char* s);
 
 //*********************************************************************************************************//
 int main(void)
@@ -199,8 +201,11 @@ int main(void)
     __bis_SR_register(GIE);
 
 // Begin Main Code
-    UART_B3_read_response(&RXSWFG3);
-    test_removing_7B();
+//    UART_B3_read_response(&RXSWFG3);
+//    test_strtok();
+    strcpy(response_buffer_b0[PI_TD0],"{FF}");
+    volatile int count = get_colon_count(response_buffer_b0[PI_TD0]);
+    count++;
 //    array_copy(uart_read_message,response[0]);
 //    UART_write_msg(commands[1]);
 // End Main Code
@@ -208,6 +213,62 @@ int main(void)
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
+void rmv_start_end_chars(void){
+
+}
+//int get_colon_count(const char* s){
+//	// Note: if passed a string with 3 or more colons, will return 2.
+//	char* pcolon = strstr(s,":");
+//	if(pcolon == NULL){
+//		return 0;
+//	}
+//	else{
+//		char* pcolon2 = strstr(pcolon+1,":");
+//		if(pcolon2 == NULL){
+//			return 1;
+//		}
+//		else {
+//			return 2;
+//		}
+//	}
+//}
+void test_strtok(void){
+	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
+	char* pcommand;
+	char* pboard;
+	char* psensor;
+//	char command[4];// size + 1 for '\0'
+//	char board[3];
+//	char sensor[5];
+	char array_copy[17];
+	strcpy(array_copy,response_buffer_b0[PI_TD0]);
+	if(strstr(array_copy,"{")!=NULL){
+		strncpy(array_copy,array_copy+1,strlen(array_copy)-1);
+		array_copy[strlen(array_copy)-1]='\0';
+	}
+	if(strstr(array_copy,"}")!=NULL){
+		array_copy[strlen(array_copy)-1]='\0';
+	}
+	pcommand = strtok(array_copy,":");
+	pboard = strtok(NULL,":");
+	psensor = strtok(NULL,":");
+//	strcpy(command,pcommand);
+//	strcpy(board,pboard); // TODO: Appending '\0's when writing to already written to array.
+//	strcpy(sensor,psensor);
+//	UART_write_msg(command);
+//	UART_write_msg(board);
+//	UART_write_msg(sensor);
+	if(strcmp(pcommand,"00")==0){
+		UART_write_msg(pcommand);
+	}
+	if(strcmp(pboard,"B0")==0){
+		UART_write_msg(pboard);
+	}
+	if(strcmp(psensor,"TD0")==0){
+		UART_write_msg(psensor);
+	}
+	__no_operation();
+}
 void test_removing_7B(void){
 	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
 	if(strlen(strstr(response_buffer_b0[PI_TD0],"{")) == strlen(response_buffer_b0[PI_TD0])){
@@ -215,6 +276,21 @@ void test_removing_7B(void){
 	}
 	else {
 		strcpy(response_buffer_b0[PI_TD0],"'{' not at beginning");
+	}
+	UART_write_msg(response_buffer_b0[PI_TD0]);
+}
+void test_removing_7D(void){
+	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
+//	char* temp = strstr(response_buffer_b0[PI_TD0],"}");
+//	UART_write_msg(temp);
+//	char test[17];
+	if(strlen(strstr(response_buffer_b0[PI_TD0],"}")) == 1){
+//		strncpy(response_buffer_b0[PI_TD0],response_buffer_b0[PI_TD0],strlen(response_buffer_b0[PI_TD0])-1);
+//		strncpy(test,response_buffer_b0[PI_TD0],strlen(response_buffer_b0[PI_TD0])-1);
+		response_buffer_b0[PI_TD0][strlen(response_buffer_b0[PI_TD0])-1] = '\0';
+	}
+	else {
+		strcpy(response_buffer_b0[PI_TD0],"'}' not at end");
 	}
 	UART_write_msg(response_buffer_b0[PI_TD0]);
 }
