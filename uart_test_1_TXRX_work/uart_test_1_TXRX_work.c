@@ -80,13 +80,13 @@
 #include <string.h>
 
 // UART UD Variables
-extern volatile char uart_read_buffer[MSG_LEN];
-extern volatile char uart_read_message[MSG_LEN];
-extern volatile char* uart_response;
-extern volatile int uart_index;
-extern volatile int uart_readDoneFG;
-extern volatile int uart_fsm_state;
-extern volatile int uart_read_index;
+extern char uart_v3_read_buffer[MSG_LEN];
+extern char uart_b3_read_message[MSG_LEN];
+//extern char* uart_response;
+extern int uart_index;
+extern int uart_readDoneFG;
+extern int uart_fsm_state;
+extern int uart_read_index;
 extern volatile int RXSWFG0;
 extern volatile int RXSWFG1;
 extern volatile int RXSWFG2;
@@ -191,6 +191,7 @@ extern char response_status_b2[PI_HAT_SENSOR_CNT];
 extern char response_status_b3[PI_HAT_SENSOR_CNT];
 extern char response_status_b4[DAQCS_SENSOR_CNT];
 
+
 //*********************************************************************************************************//
 int main(void)
 {
@@ -212,16 +213,16 @@ int main(void)
     __bis_SR_register(GIE);
 
 // Begin Main Code
-//    UART_B3_read_response(&RXSWFG3);
-    strcpy(response_buffer_b0[PI_TD0],"{FF}");
-    rmv_start_end_chars(response_buffer_b0[PI_TD0]);
-    volatile int count = get_colon_count(response_buffer_b0[PI_TD0]);
-    count++;
+while(1){
+	UART_B3_read_response(&RXSWFG3);
+	parse_cmd_from_comms(uart_b3_read_message);
+}
 // End Main Code
 
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
+
 void test_strtok(void){
 	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
 	char* pcommand;

@@ -11,13 +11,13 @@
 #include "uart.h"
 
 // UART UD Variables
-volatile char uart_b3_read_buffer[MSG_LEN]={};
-volatile char uart_b3_read_message[MSG_LEN]={};
+char uart_b3_read_buffer[MSG_LEN]={};
+char uart_b3_read_message[MSG_LEN]={};
 //volatile char* uart_response="XXXXXXXXXXXXXXXXX"; // atm biggest response = 17 characters
-volatile int uart_index = 0;
-volatile int uart_readDoneFG = 0;
-volatile int uart_b3_fsm_state = LISTENING_FOR_RESPONSE;
-volatile int uart_read_index = 0;
+int uart_index = 0;
+int uart_readDoneFG = 0;
+int uart_b3_fsm_state = LISTENING_FOR_RESPONSE;
+int uart_read_index = 0;
 volatile int RXSWFG0 = 0;
 volatile int RXSWFG1 = 0;
 volatile int RXSWFG2 = 0;
@@ -73,9 +73,9 @@ void UART_read_msg(void){
 }
 
 void UART_B3_read_response(volatile int* RXSWFG3){ // TODO: need to get passed in?
-	volatile int index = 0;
-	volatile int Done = 0;
-	volatile int read_index = 0;
+	int index = 0;
+	int Done = 0;
+	int read_index = 0;
 	while(Done == 0){
 		while(*RXSWFG3 == 0) ;
 		uart_b3_read_buffer[index] = UCA3RXBUF;
@@ -121,7 +121,7 @@ void UART_write_msg(char* message){
 }
 
 //obsolete due to strcpy?
-void array_copy(volatile char array_from[],volatile char array_to[]){
+void array_copy(char array_from[],char array_to[]){
 	int i = 0;
 	while(array_from[i]!='\0'){
 		array_to[i]=array_from[i];

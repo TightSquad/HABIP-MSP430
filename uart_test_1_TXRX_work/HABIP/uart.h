@@ -26,6 +26,6 @@ void UART_write_msg(char* message);
 //void UART_B2_read_response(volatile int* RXSWFG2);
 void UART_B3_read_response(volatile int* RXSWFG3);
 void chris_init(void);
-void array_copy(volatile char array_from[],volatile char array_to[]);
+void array_copy(char array_from[],char array_to[]);
 
 #endif /* HABIP_UART_H_ */

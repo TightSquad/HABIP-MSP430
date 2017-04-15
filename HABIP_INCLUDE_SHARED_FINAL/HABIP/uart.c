@@ -11,19 +11,25 @@
 #include "uart.h"
 
 // UART UD Variables
-volatile char uart_read_buffer[MSG_LEN]={};
-volatile char uart_read_message[MSG_LEN]={};
-volatile int uart_index = 0;
-volatile int uart_readDoneFG = 0;
-volatile int uart_fsm_state = LISTENING_FOR_RESPONSE;
-volatile int uart_read_index = 0;
+char uart_b3_read_buffer[MSG_LEN]={};
+char uart_b3_read_message[MSG_LEN]={};
+//volatile char* uart_response="XXXXXXXXXXXXXXXXX"; // atm biggest response = 17 characters
+int uart_index = 0;
+int uart_readDoneFG = 0;
+int uart_b3_fsm_state = LISTENING_FOR_RESPONSE;
+int uart_read_index = 0;
+volatile int RXSWFG0 = 0;
+volatile int RXSWFG1 = 0;
+volatile int RXSWFG2 = 0;
+volatile int RXSWFG3 = 0;
 
-void config_UART_4_GPIO(void){
+
+void config_UART_B3_GPIO(void){
 	P6SEL1 &= ~(BIT0 | BIT1);
 	P6SEL0 |= (BIT0 | BIT1);				// USCI_A3 UART operation
 	activate_GPIO_config();
 }
-void config_UART_4_9600_ACLK_32768Hz(void){
+void config_UART_B3_9600_ACLK_32768Hz(void){
 // Configure USCI_A3 for UART mode
 	/* Dependencies
 	 * config_XT1_ACLK_32768Hz();
@@ -36,7 +42,7 @@ void config_UART_4_9600_ACLK_32768Hz(void){
                                             // UCBRSx value = 0x53 (See UG)
     UCA3CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
 }
-void config_UART_4_9600_SMCLK_8MHz(void){
+void config_UART_B3_9600_SMCLK_8MHz(void){
 // Configure USCI_A3 for UART mode
 	/* Dependencies:
 	 * config_DCO_8MHz();
@@ -58,12 +64,48 @@ void UART_read_msg(void){
 	int i;
 	// clear last message
 	for(i=0;i<MSG_LEN;i++){
-		uart_read_message[i] = 0;
+		uart_b3_read_message[i] = 0;
 	}
 	uart_readDoneFG = 0;
     UCA3IE |= UCRXIE;                        // Enable USCI_A3 RX interrupt
     while(uart_readDoneFG == 0) ;
     UCA3IE &= ~UCRXIE;                       // Disable USCI_A3 RX interrupt
+}
+
+void UART_B3_read_response(volatile int* RXSWFG3){ // TODO: need to get passed in?
+	int index = 0;
+	int Done = 0;
+	int read_index = 0;
+	while(Done == 0){
+		while(*RXSWFG3 == 0) ;
+		uart_b3_read_buffer[index] = UCA3RXBUF;
+	// LISTENING_FOR_RESPONSE
+		if(uart_b3_fsm_state == LISTENING_FOR_RESPONSE){
+			if(uart_b3_read_buffer[index] == 0x7B){
+				uart_b3_fsm_state = CAPTURING_RESPONSE;
+				read_index = 0; // May cause overwriting in future
+			}
+			else{
+				index++;
+			}
+		}
+	// CAPTURING_RESPONSE
+		if(uart_b3_fsm_state == CAPTURING_RESPONSE){
+			uart_b3_read_message[read_index] = uart_b3_read_buffer[index];
+			if(uart_b3_read_message[read_index] == 0x7D){
+				uart_b3_fsm_state = LISTENING_FOR_RESPONSE;
+				Done = 1; // reset where?
+			} // TODO: some check for '\0' in uart_response so don't overwrite next array of chars.
+			else{
+				read_index++;
+				index++;
+			}
+		}
+		if(index == MSG_LEN){
+			index = 0;
+		}
+		*RXSWFG3 = 0;
+	}
 }
 
 void UART_write_msg(char* message){
@@ -75,7 +117,17 @@ void UART_write_msg(char* message){
 		i++;
 	}
 	while(!(UCA3IFG&UCTXIFG));
-	UCA3TXBUF = END_CHAR; // future dev decide on passing in {XX} or just XX
+	UCA3TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+}
+
+//obsolete due to strcpy?
+void array_copy(char array_from[],char array_to[]){
+	int i = 0;
+	while(array_from[i]!='\0'){
+		array_to[i]=array_from[i];
+		i++;
+	}
+	array_to[i]='\0';
 }
 
 void chris_init(void){
