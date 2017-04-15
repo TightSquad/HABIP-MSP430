@@ -77,33 +77,7 @@
 #include "driverlib.h"
 #include "habip.h"
 #include "stdlib.h"
-
-//// UD Functions
-//void activate_GPIO_config(void);
-//
-//void config_XT1_GPIO(void);
-//void config_XT1_ACLK_32768Hz(void);
-//void config_DCO_8MHz(void);
-//void config_DCO_1MHz(void);
-//
-//void config_UART_4_GPIO(void);
-//void config_UART_4_9600_ACLK_32768Hz(void);
-//void config_UART_4_9600_SMCLK_8MHz(void);
-//void UART_read_msg(void);
-//void UART_write_msg(char* message);
-//void chris_init(void);
-//
-//void config_DS4_LED(void);
-//void Toggle_ON_OFF_DS4_LED(void);
-//void delay_LED(void);
-
-
-//// UART UD Constants
-//#define END_CHAR 0x7D // End of Transmission ASCII Character as per Protocol Format
-//#define MSG_LEN 64 // Default for now
-//
-//#define LISTENING_FOR_RESPONSE 0x00
-//#define CAPTURING_RESPONSE 0x01
+#include <string.h>
 
 // UART UD Variables
 extern volatile char uart_read_buffer[MSG_LEN];
@@ -118,9 +92,33 @@ extern volatile int RXSWFG1;
 extern volatile int RXSWFG2;
 extern volatile int RXSWFG3;
 
-char* commands[2] = {	"{00:B0:V}",
+char* commands[3] = {	"{00:B0:V}",
+						"{00:B0:V}",
 						"{00:B0:C}"
-					};
+					};//temp
+
+char* command_PI[4] = {	"00:", // Grab Sensor Data
+				"01", // Grab all sensor data
+				"05:", // Board Reset
+				"06:" // Time Sync
+			};
+char* command_DAQCS_host[4] = {	"00:", // Grab Sensor Data
+					"01", // Grab all sensor data
+					"06:", // Time Sync
+					"FF" // Trigger Cutdown
+			};
+char* command_DAQCS_motor[5] = {	"00:", // Grab Sensor Data
+						"01", // Grab all sensor data
+						"03:", // Reaction Wheel On/Off
+						"04", // Reaction Wheel Control (degrees)
+						"06:", // Time Sync
+			};
+char* board_list[5] = {	"B0", // Pi Hat 0 - UCA0 - "UART_1" - J1
+			"B1", // Pi Hat 1 - UCA1 - "UART_2" - J2
+			"B2", // Pi Hat 2 - UCA2 - "UART_3" - J3
+			"B3", // Pi Hat 3 - UCA3 - "UART_4" - J4
+			"B4" // Self / Motor MSP - Host-UCB0 - Motor-UCA0 SPI
+		};
 
 // Pi Hat Board Sensor Info Indicies
 #define PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE 10
@@ -139,6 +137,7 @@ char response_buffer_b0[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONS
 char response_buffer_b1[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
 char response_buffer_b2[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
 char response_buffer_b3[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONSE_MSG_SIZE]={};
+
 
 // DAQCS Board Sensor Info Indicies
 #define DAQCS_SENSOR_RESPONSE_ARRAY_SIZE 16
@@ -160,6 +159,24 @@ char response_buffer_b3[PI_HAT_SENSOR_RESPONSE_ARRAY_SIZE][PI_HAT_SENSOR_RESPONS
 #define DQ_MD 14
 #define DQ_ME 15
 char response_buffer_b4[DAQCS_SENSOR_RESPONSE_ARRAY_SIZE][DAQCS_SENSOR_RESPONSE_MSG_SIZE]={};
+
+// response_buffer data status
+#define OLD 0x00
+#define NEW 0x01
+#define ERROR 0xEE
+char response_status_b0 = OLD;
+char response_status_b1 = OLD;
+char response_status_b2 = OLD;
+char response_status_b3 = OLD;
+char response_status_b4 = OLD;
+
+//temp
+void test_strcmp(void);
+void test_strcpy(void);
+void test_strcat(void);
+void test_extraction_command(void);
+void test_strstr(void);
+void test_removing_7B(void);
 
 //*********************************************************************************************************//
 int main(void)
@@ -183,13 +200,99 @@ int main(void)
 
 // Begin Main Code
     UART_B3_read_response(&RXSWFG3);
+    test_removing_7B();
 //    array_copy(uart_read_message,response[0]);
-    UART_write_msg(commands[1]);
+//    UART_write_msg(commands[1]);
 // End Main Code
 
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
+void test_removing_7B(void){
+	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
+	if(strlen(strstr(response_buffer_b0[PI_TD0],"{")) == strlen(response_buffer_b0[PI_TD0])){
+		strncpy(response_buffer_b0[PI_TD0],response_buffer_b0[PI_TD0]+1,strlen(response_buffer_b0[PI_TD0])-1);
+	}
+	else {
+		strcpy(response_buffer_b0[PI_TD0],"'{' not at beginning");
+	}
+	UART_write_msg(response_buffer_b0[PI_TD0]);
+}
+void test_strstr(void){
+	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
+	char* leftover;
+	leftover = strstr(response_buffer_b0[PI_TD0],":");
+	strcpy(response_buffer_b0[PI_TD0],leftover);
+//	UART_write_msg(response_buffer_b0[PI_TD0]);
+}
+void test_extraction_command(void){
+	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
+	char* leftover = strstr(response_buffer_b0[PI_TD0],":");
+	char command_val [3] = {};
+	if(strchr(response_buffer_b0[PI_TD0],START_CHAR)!= NULL){ // Has start char somewhere
+		strncpy(command_val,response_buffer_b0[PI_TD0]+1,strlen(response_buffer_b0[PI_TD0])-strlen(leftover)-1);
+	}
+	else {
+		strncpy(command_val,response_buffer_b0[PI_TD0],strlen(response_buffer_b0[PI_TD0])-strlen(leftover));
+	}
+	UART_write_msg(command_val);
+}
+void test_strcat(void){
+	// Test Results
+	// SUCCESS: "" to array
+	// SUCCESS: array to array
+	// SUCCESS: pchar to array
+//	strcpy(response_buffer_b0[PI_TD0],"{00:");
+//	strcpy(response_buffer_b0[PI_TB0],"TB0:");
+//	strcat(response_buffer_b0[PI_TD0],response_buffer_b0[PI_TB0]);
+//	strcat(response_buffer_b0[PI_TD0],"1490}");
+	strcat(response_buffer_b0[PI_TD0],commands[0]);
+	UART_write_msg(response_buffer_b0[PI_TD0]);
+}
+void test_strcmp(void){
+	// Test Results
+	// SUCCESS: Two char pointers
+	// SUCCESS: Two arrays
+	// SUCCESS: One array one char pointer
+    int result = 1;
+//    result = strcmp(commands[0],commands[1]); // SUCCESS
+//    char* test = "aloha";
+//    strcpy(response_buffer_b0[PI_TD0],"aloha");
+//    strcpy(response_buffer_b0[PI_TB0],"aloha");
+//    result = strcmp(response_buffer_b0[PI_TD0],response_buffer_b0[PI_TB0]); // SUCCESS
+//    result = strcmp(response_buffer_b0[PI_TD0],test); // SUCCESS
+    strcpy(response_buffer_b0[PI_TD0],commands[0]);
+    result = strcmp(response_buffer_b0[PI_TD0],commands[1]); // SUCCESS
+    if(result == 0) {
+    	UART_write_msg("Great Success YO Swag");
+    }
+}
+void test_strcpy(void){
+	// Test Results
+	// Need normal chars, not volatile
+	// FAIL: Two char pointers
+	// SUCCESS: Copying pchar into array
+	// SUCCESS: Copying "" into array
+	// SUCCESS: Array to Array - same size
+	// SUCCESS: Array to Array - diff msg size
+	// SUCCESS: Array to Array - diff array size
+	// OVERFLOW: Overflow is a thing. be careful TODO: Can I do anything about this error wise or preventative?
+//	strcpy(commands[1],commands[2]); // FAIL
+//	strcpy(commands[1],"Help"); // FAIL
+//	commands[1] = strcpy(commands[1],commands[2]); // FAIL
+//	UART_write_msg(commands[1]);
+//	strcpy(response_buffer_b0[PI_TD0],"1234567890123456"); // SUCCESS
+////	strcpy(response_buffer_b0[PI_TB0],"testTB0");
+////	strcpy(response_buffer_b0[PI_TD0],response_buffer_b0[PI_TB0]); // SUCCESS
+//	strcpy(response_buffer_b4[DQ_TB0],"abc123def456333overflow");
+//	strcpy(response_buffer_b0[PI_TD0],response_buffer_b4[DQ_TB0]); // SUCCESS
+////	UART_write_msg(response_buffer_b0[PI_TD0]);
+//	UART_write_msg(response_buffer_b0[PI_TB0]); // Overflow happens
+	strcpy(response_buffer_b0[PI_TD0],"1234567890123456");
+	strcpy(response_buffer_b0[PI_TD0],commands[2]);
+	UART_write_msg(response_buffer_b0[PI_TD0]);
+}
+
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=EUSCI_A0_VECTOR
 __interrupt void USCI_A0_ISR(void)

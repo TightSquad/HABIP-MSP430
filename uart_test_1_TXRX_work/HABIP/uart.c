@@ -11,12 +11,12 @@
 #include "uart.h"
 
 // UART UD Variables
-volatile char uart_read_buffer[MSG_LEN]={};
-volatile char uart_read_message[MSG_LEN]={};
-volatile char* uart_response="XXXXXXXXXXXXXXXXX"; // atm biggest response = 17 characters
+volatile char uart_b3_read_buffer[MSG_LEN]={};
+volatile char uart_b3_read_message[MSG_LEN]={};
+//volatile char* uart_response="XXXXXXXXXXXXXXXXX"; // atm biggest response = 17 characters
 volatile int uart_index = 0;
 volatile int uart_readDoneFG = 0;
-volatile int uart_fsm_state = LISTENING_FOR_RESPONSE;
+volatile int uart_b3_fsm_state = LISTENING_FOR_RESPONSE;
 volatile int uart_read_index = 0;
 volatile int RXSWFG0 = 0;
 volatile int RXSWFG1 = 0;
@@ -64,7 +64,7 @@ void UART_read_msg(void){
 	int i;
 	// clear last message
 	for(i=0;i<MSG_LEN;i++){
-		uart_read_message[i] = 0;
+		uart_b3_read_message[i] = 0;
 	}
 	uart_readDoneFG = 0;
     UCA3IE |= UCRXIE;                        // Enable USCI_A3 RX interrupt
@@ -72,22 +72,17 @@ void UART_read_msg(void){
     UCA3IE &= ~UCRXIE;                       // Disable USCI_A3 RX interrupt
 }
 
-//void UART_read_response(char* message,volatile int* RXSWFG){
-void UART_B3_read_response(volatile int* RXSWFG3){
-//	volatile char read_buffer[MSG_LEN]={};
-//	char* p_message = message;
+void UART_B3_read_response(volatile int* RXSWFG3){ // TODO: need to get passed in?
 	volatile int index = 0;
 	volatile int Done = 0;
-//	volatile int fsm_state = LISTENING_FOR_RESPONSE;
 	volatile int read_index = 0;
-//	while (!(UCA3IFG&UCTXIFG));             // USCI_A3 TX buffer ready?
 	while(Done == 0){
 		while(*RXSWFG3 == 0) ;
-		uart_read_buffer[index] = UCA3RXBUF;
+		uart_b3_read_buffer[index] = UCA3RXBUF;
 	// LISTENING_FOR_RESPONSE
-		if(uart_fsm_state == LISTENING_FOR_RESPONSE){
-			if(uart_read_buffer[index] == 0x7B){
-				uart_fsm_state = CAPTURING_RESPONSE;
+		if(uart_b3_fsm_state == LISTENING_FOR_RESPONSE){
+			if(uart_b3_read_buffer[index] == 0x7B){
+				uart_b3_fsm_state = CAPTURING_RESPONSE;
 				read_index = 0; // May cause overwriting in future
 			}
 			else{
@@ -95,16 +90,10 @@ void UART_B3_read_response(volatile int* RXSWFG3){
 			}
 		}
 	// CAPTURING_RESPONSE
-		if(uart_fsm_state == CAPTURING_RESPONSE){
-			uart_read_message[read_index] = uart_read_buffer[index];
-			//			*read_message = read_buffer[index];
-			//			if(*read_message++ == 0x7D){
-			//			*message = read_buffer[index];
-			//			if(*message++ == 0x7D){
-			//			*(uart_response+read_index) = read_buffer[index];
-			//			if(*(uart_response+read_index) == 0x7D){
-			if(uart_read_message[read_index] == 0x7D){
-				uart_fsm_state = LISTENING_FOR_RESPONSE;
+		if(uart_b3_fsm_state == CAPTURING_RESPONSE){
+			uart_b3_read_message[read_index] = uart_b3_read_buffer[index];
+			if(uart_b3_read_message[read_index] == 0x7D){
+				uart_b3_fsm_state = LISTENING_FOR_RESPONSE;
 				Done = 1; // reset where?
 			} // TODO: some check for '\0' in uart_response so don't overwrite next array of chars.
 			else{
@@ -117,8 +106,6 @@ void UART_B3_read_response(volatile int* RXSWFG3){
 		}
 		*RXSWFG3 = 0;
 	}
-//	message = read_message;
-//	return read_message;
 }
 
 void UART_write_msg(char* message){
@@ -130,9 +117,10 @@ void UART_write_msg(char* message){
 		i++;
 	}
 	while(!(UCA3IFG&UCTXIFG));
-	UCA3TXBUF = END_CHAR; // future dev decide on passing in {XX} or just XX
+	UCA3TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
 }
 
+//obsolete due to strcpy?
 void array_copy(volatile char array_from[],volatile char array_to[]){
 	int i = 0;
 	while(array_from[i]!='\0'){
