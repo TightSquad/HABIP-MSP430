@@ -120,52 +120,52 @@ char* board_list[5] = {	"B0", // Pi Hat 0 - UCA0 - "UART_1" - J1
 			"B4" // Self / Motor MSP - Host-UCB0 - Motor-UCA0 SPI
 		};
 
-// Pi Hat Board Sensor Info Indicies
-#define PI_HAT_SENSOR_CNT 10
-#define PI_TD0 0
-#define PI_TB0 1
-#define PI_TB1 2
-#define PI_TE0 3
-#define PI_TE1 4
-#define PI_P0 5
-#define PI_P1 6
-#define PI_H 7
-#define PI_V 8
-#define PI_C 9
-char response_buffer_b0[PI_HAT_SENSOR_CNT][MSG_LEN]={};
-char response_buffer_b1[PI_HAT_SENSOR_CNT][MSG_LEN]={};
-char response_buffer_b2[PI_HAT_SENSOR_CNT][MSG_LEN]={};
-char response_buffer_b3[PI_HAT_SENSOR_CNT][MSG_LEN]={};
+//// Pi Hat Board Sensor Info Indicies
+//#define PI_HAT_SENSOR_CNT 10
+//#define PI_TD0 0
+//#define PI_TB0 1
+//#define PI_TB1 2
+//#define PI_TE0 3
+//#define PI_TE1 4
+//#define PI_P0 5
+//#define PI_P1 6
+//#define PI_H 7
+//#define PI_V 8
+//#define PI_C 9
+//char response_buffer_b0[PI_HAT_SENSOR_CNT][MSG_LEN]={};
+//char response_buffer_b1[PI_HAT_SENSOR_CNT][MSG_LEN]={};
+//char response_buffer_b2[PI_HAT_SENSOR_CNT][MSG_LEN]={};
+//char response_buffer_b3[PI_HAT_SENSOR_CNT][MSG_LEN]={};
 
-// DAQCS Board Sensor Info Indicies
-#define DAQCS_SENSOR_CNT 16
-#define DQ_TB0 0
-#define DQ_P0 1
-#define DQ_PB 2
-#define DQ_V 3
-#define DQ_C 4
-#define DQ_XGY 5
-#define DQ_XAC 6
-#define DQ_YGY 7
-#define DQ_YAC 8
-#define DQ_ZGY 9
-#define DQ_ZAC 10
-#define DQ_MS 11
-#define DQ_MC 12
-#define DQ_MV 13
-#define DQ_MD 14
-#define DQ_ME 15
-char response_buffer_b4[DAQCS_SENSOR_CNT][MSG_LEN]={};
+//// DAQCS Board Sensor Info Indicies
+//#define DAQCS_SENSOR_CNT 16
+//#define DQ_TB0 0
+//#define DQ_P0 1
+//#define DQ_PB 2
+//#define DQ_V 3
+//#define DQ_C 4
+//#define DQ_XGY 5
+//#define DQ_XAC 6
+//#define DQ_YGY 7
+//#define DQ_YAC 8
+//#define DQ_ZGY 9
+//#define DQ_ZAC 10
+//#define DQ_MS 11
+//#define DQ_MC 12
+//#define DQ_MV 13
+//#define DQ_MD 14
+//#define DQ_ME 15
+//char response_buffer_b4[DAQCS_SENSOR_CNT][MSG_LEN]={};
 
-// response_buffer data status
-#define OLD 0x00
-#define NEW 0x01
-#define ERROR 0xEE
-char response_status_b0[PI_HAT_SENSOR_CNT] = {{OLD}};
-char response_status_b1[PI_HAT_SENSOR_CNT] = {{OLD}};
-char response_status_b2[PI_HAT_SENSOR_CNT] = {{OLD}};
-char response_status_b3[PI_HAT_SENSOR_CNT] = {{OLD}};
-char response_status_b4[DAQCS_SENSOR_CNT] = {{OLD}};
+//// response_buffer data status
+//#define OLD 0x00
+//#define NEW 0x01
+//#define ERROR 0xEE
+//char response_status_b0[PI_HAT_SENSOR_CNT] = {{OLD}};
+//char response_status_b1[PI_HAT_SENSOR_CNT] = {{OLD}};
+//char response_status_b2[PI_HAT_SENSOR_CNT] = {{OLD}};
+//char response_status_b3[PI_HAT_SENSOR_CNT] = {{OLD}};
+//char response_status_b4[DAQCS_SENSOR_CNT] = {{OLD}};
 
 //temp
 void test_strcmp(void);
@@ -176,9 +176,20 @@ void test_strstr(void);
 void test_removing_7B(void);
 void test_removing_7D(void);
 void test_strtok(void);
-void rmv_start_end_chars(void);
 
-//int get_colon_count(const char* s);
+
+//temp?
+extern char response_buffer_b0[PI_HAT_SENSOR_CNT][MSG_LEN];
+extern char response_buffer_b1[PI_HAT_SENSOR_CNT][MSG_LEN];
+extern char response_buffer_b2[PI_HAT_SENSOR_CNT][MSG_LEN];
+extern char response_buffer_b3[PI_HAT_SENSOR_CNT][MSG_LEN];
+extern char response_buffer_b4[DAQCS_SENSOR_CNT][MSG_LEN];
+
+extern char response_status_b0[PI_HAT_SENSOR_CNT];
+extern char response_status_b1[PI_HAT_SENSOR_CNT];
+extern char response_status_b2[PI_HAT_SENSOR_CNT];
+extern char response_status_b3[PI_HAT_SENSOR_CNT];
+extern char response_status_b4[DAQCS_SENSOR_CNT];
 
 //*********************************************************************************************************//
 int main(void)
@@ -202,44 +213,20 @@ int main(void)
 
 // Begin Main Code
 //    UART_B3_read_response(&RXSWFG3);
-//    test_strtok();
     strcpy(response_buffer_b0[PI_TD0],"{FF}");
+    rmv_start_end_chars(response_buffer_b0[PI_TD0]);
     volatile int count = get_colon_count(response_buffer_b0[PI_TD0]);
     count++;
-//    array_copy(uart_read_message,response[0]);
-//    UART_write_msg(commands[1]);
 // End Main Code
 
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
-void rmv_start_end_chars(void){
-
-}
-//int get_colon_count(const char* s){
-//	// Note: if passed a string with 3 or more colons, will return 2.
-//	char* pcolon = strstr(s,":");
-//	if(pcolon == NULL){
-//		return 0;
-//	}
-//	else{
-//		char* pcolon2 = strstr(pcolon+1,":");
-//		if(pcolon2 == NULL){
-//			return 1;
-//		}
-//		else {
-//			return 2;
-//		}
-//	}
-//}
 void test_strtok(void){
 	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
 	char* pcommand;
 	char* pboard;
 	char* psensor;
-//	char command[4];// size + 1 for '\0'
-//	char board[3];
-//	char sensor[5];
 	char array_copy[17];
 	strcpy(array_copy,response_buffer_b0[PI_TD0]);
 	if(strstr(array_copy,"{")!=NULL){
