@@ -207,8 +207,8 @@ void UART_write_msg(int brd_num, char* message){
 			UCA0TXBUF = message[i];
 			i++;
 		}
-		while(!(UCA0IFG&UCTXIFG));
-		UCA0TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+//		while(!(UCA0IFG&UCTXIFG));
+//		UCA0TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
 		break;
 	case 1:
 		while(message[i] != '\0'){
@@ -216,8 +216,8 @@ void UART_write_msg(int brd_num, char* message){
 			UCA1TXBUF = message[i];
 			i++;
 		}
-		while(!(UCA1IFG&UCTXIFG));
-		UCA1TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+//		while(!(UCA1IFG&UCTXIFG));
+//		UCA1TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
 		break;
 	case 2:
 		while(message[i] != '\0'){
@@ -225,8 +225,8 @@ void UART_write_msg(int brd_num, char* message){
 			UCA2TXBUF = message[i];
 			i++;
 		}
-		while(!(UCA2IFG&UCTXIFG));
-		UCA2TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+//		while(!(UCA2IFG&UCTXIFG));
+//		UCA2TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
 		break;
 	case 3:
 		while(message[i] != '\0'){
@@ -234,8 +234,8 @@ void UART_write_msg(int brd_num, char* message){
 			UCA3TXBUF = message[i];
 			i++;
 		}
-		while(!(UCA3IFG&UCTXIFG));
-		UCA3TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+//		while(!(UCA3IFG&UCTXIFG));
+//		UCA3TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
 		break;
 	default: break;
 	}
