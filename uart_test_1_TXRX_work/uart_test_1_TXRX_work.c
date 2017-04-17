@@ -192,7 +192,7 @@ extern char response_status_b3[PI_HAT_SENSOR_CNT];
 extern char response_status_b4[DAQCS_SENSOR_CNT];
 
 //temp
-void three_colon_extract(char* msg, char** cmd, char** brd, char** sns);
+
 //*********************************************************************************************************//
 int main(void)
 {
@@ -221,7 +221,7 @@ while(1){
 	char* brd = "";
 	char* sns = "";
 	char msg[MSG_LEN];
-	strcpy(msg,"{00:B2:TB0}");
+	strcpy(msg,"{00:B3:TB0}");
 	rmv_start_end_chars(msg);
 //	rmv_start_end_chars(uart_b3_read_message);
 //	three_colon_extract(uart_b3_read_message,&cmd,&brd,&sns);
@@ -236,11 +236,7 @@ while(1){
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
-void three_colon_extract(char* msg, char** first, char** second, char** third){
-	*first = strtok(msg,":");
-	*second = strtok(NULL,":");
-	*third = strtok(NULL,":");
-}
+
 void test_strtok(void){
 	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
 	char* pcommand;
