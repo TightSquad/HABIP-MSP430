@@ -49,6 +49,11 @@ int get_colon_count(const char* s){
 
 void parse_cmd_from_comms(char* msg){
 	char msg_orig[MSG_LEN];
+	char* comms2_cmd = "";
+	char* comms2_val = "";
+	char* comms3_cmd = "";
+	char* comms3_brd = "";
+	char* comms3_sns = "";
 	strcpy(msg_orig,msg);
 	rmv_start_end_chars(msg);
 	int count = get_colon_count(msg);
@@ -68,9 +73,7 @@ void parse_cmd_from_comms(char* msg){
 				break;
 			case 1:
 				// Insert specific code for handling 1 colon commands or call fnc
-				char* comms2_cmd = "";
-				char* comms2_val = "";
-				one_colon_extraction(msg,&comms2_cmd,&comms2_val);
+				one_colon_extract(msg,&comms2_cmd,&comms2_val);
 				if((strcmp(comms2_cmd,"03")==0)||(strcmp(comms2_cmd,"04")==0)){
 					// forward reaction wheel command to motor msp
 				}
@@ -102,10 +105,7 @@ void parse_cmd_from_comms(char* msg){
 				break;
 			case 2:
 				// Insert specific code for handling 2 colon commands or call fnc
-				char* comms3_cmd = "";
-				char* comms3_brd = "";
-				char* comms3_sns = "";
-				two_colon_extraction(msg,&comms3_cmd,&comms3_brd,&comms3_sns);
+				two_colon_extract(msg,&comms3_cmd,&comms3_brd,&comms3_sns);
 				// TODO: LP future can do error checking for making sure valid msg from comms for other areas
 				if(strcmp(comms3_brd,"B0")==0){
 					// forward command to B0

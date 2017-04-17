@@ -4,85 +4,173 @@
  *  Created on: Apr 11, 2017
  *      Author: Lincster
  */
-// #include <uart.h>
 #include <msp430.h>
 #include <driverlib.h>
 #include "common.h"
 #include "uart.h"
 
 // UART UD Variables
-char uart_b3_read_buffer[MSG_LEN]={};
-char uart_b3_read_message[MSG_LEN]={};
-//volatile char* uart_response="XXXXXXXXXXXXXXXXX"; // atm biggest response = 17 characters
-int uart_index = 0;
-int uart_readDoneFG = 0;
-int uart_b3_fsm_state = LISTENING_FOR_RESPONSE;
-int uart_read_index = 0;
+char uart_read_buffer[4][MSG_LEN]={{}};
+char uart_read_message[4][MSG_LEN]={{}};
+int uart_fsm_state[4] = {{LISTENING_FOR_RESPONSE}}; // TODO: Does this work for init?
 volatile int RXSWFG0 = 0;
 volatile int RXSWFG1 = 0;
 volatile int RXSWFG2 = 0;
 volatile int RXSWFG3 = 0;
 
-
-void config_UART_B3_GPIO(void){
-	P6SEL1 &= ~(BIT0 | BIT1);
-	P6SEL0 |= (BIT0 | BIT1);				// USCI_A3 UART operation
+void config_UART_GPIO(int brd_num){
+	switch(brd_num)
+	{
+	case 0:
+		// USCI_A0 UART operation
+		P2SEL1 |= (BIT0 | BIT1);
+		P2SEL0 &= ~(BIT0 | BIT1);
+		break;
+	case 1:
+		// USCI_A1 UART operation
+		P2SEL1 |= (BIT5 | BIT6);
+		P2SEL0 &= ~(BIT5 | BIT6);
+		break;
+	case 2:
+		// USCI_A2 UART operation
+		P5SEL1 &= ~(BIT4 | BIT5);
+		P5SEL0 |= (BIT4 | BIT5);
+		break;
+	case 3:
+		// USCI_A3 UART operation
+		P6SEL1 &= ~(BIT0 | BIT1);
+		P6SEL0 |= (BIT0 | BIT1);
+		break;
+	default: break;
+	}
 	activate_GPIO_config();
 }
-void config_UART_B3_9600_ACLK_32768Hz(void){
-// Configure USCI_A3 for UART mode
+void config_UART_9600_ACLK_32768Hz(int brd_num){
 	/* Dependencies
 	 * config_XT1_ACLK_32768Hz();
 	 */
-    UCA3CTLW0 = UCSWRST;                    // Put eUSCI in reset
-    UCA3CTLW0 = 0x0000;
-    UCA3CTLW0 |= UCSSEL__ACLK;              // CLK = ACLK
-    UCA3BRW = 3;                            // 9600 baud
-    UCA3MCTLW |= 0x5300;                    // 32768/9600 - INT(32768/9600)=0.41
-                                            // UCBRSx value = 0x53 (See UG)
-    UCA3CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+	switch(brd_num)
+	{
+	case 0:
+		// Configure USCI_A0 for UART mode
+		UCA0CTLW0 = UCSWRST;                    // Put eUSCI in reset
+		UCA0CTLW0 = 0x0000;
+		UCA0CTLW0 |= UCSSEL__ACLK;              // CLK = ACLK
+		UCA0BRW = 3;                            // 9600 baud
+		UCA0MCTLW |= 0x5300;                    // 32768/9600 - INT(32768/9600)=0.41
+												// UCBRSx value = 0x53 (See UG)
+		UCA0CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+		break;
+	case 1:
+		// Configure USCI_A1 for UART mode
+		UCA1CTLW0 = UCSWRST;                    // Put eUSCI in reset
+		UCA1CTLW0 = 0x0000;
+		UCA1CTLW0 |= UCSSEL__ACLK;              // CLK = ACLK
+		UCA1BRW = 3;                            // 9600 baud
+		UCA1MCTLW |= 0x5300;                    // 32768/9600 - INT(32768/9600)=0.41
+												// UCBRSx value = 0x53 (See UG)
+		UCA1CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+		break;
+	case 2:
+		// Configure USCI_A2 for UART mode
+		UCA2CTLW0 = UCSWRST;                    // Put eUSCI in reset
+		UCA2CTLW0 = 0x0000;
+		UCA2CTLW0 |= UCSSEL__ACLK;              // CLK = ACLK
+		UCA2BRW = 3;                            // 9600 baud
+		UCA2MCTLW |= 0x5300;                    // 32768/9600 - INT(32768/9600)=0.41
+												// UCBRSx value = 0x53 (See UG)
+		UCA2CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+		break;
+	case 3:
+		// Configure USCI_A3 for UART mode
+		UCA3CTLW0 = UCSWRST;                    // Put eUSCI in reset
+		UCA3CTLW0 = 0x0000;
+		UCA3CTLW0 |= UCSSEL__ACLK;              // CLK = ACLK
+		UCA3BRW = 3;                            // 9600 baud
+		UCA3MCTLW |= 0x5300;                    // 32768/9600 - INT(32768/9600)=0.41
+												// UCBRSx value = 0x53 (See UG)
+		UCA3CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+		break;
+	default: break;
+	}
 }
-void config_UART_B3_9600_SMCLK_8MHz(void){
-// Configure USCI_A3 for UART mode
+void config_UART_9600_SMCLK_8MHz(int brd_num){
 	/* Dependencies:
 	 * config_DCO_8MHz();
 	 */
-	UCA3CTLW0 = UCSWRST;                    // Put eUSCI in reset
-	UCA3CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
 	// Baud Rate calculation
 	// 8000000/(16*9600) = 52.083
 	// Fractional portion = 0.083
 	// User's Guide Table 21-4: UCBRSx = 0x04
 	// UCBRFx = int ( (52.083-52)*16) = 1
-	UCA3BRW = 52;                           // 8000000/16/9600
-	UCA3MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
-	UCA3CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
-	UCA3IE |= UCRXIE;                       // Enable USCI_A3 RX interrupt
-}
-
-void UART_read_msg(void){
-	int i;
-	// clear last message
-	for(i=0;i<MSG_LEN;i++){
-		uart_b3_read_message[i] = 0;
+	//	UCAXBRW = 52;                           // 8000000/16/9600
+	switch(brd_num)
+	{
+	case 0:
+		// Configure USCI_A0 for UART mode
+		UCA0CTLW0 = UCSWRST;                    // Put eUSCI in reset
+		UCA0CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
+		UCA0BRW = 52;
+		UCA0MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
+		UCA0CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+		UCA0IE |= UCRXIE;                       // Enable USCI_A0 RX interrupt
+		break;
+	case 1:
+		// Configure USCI_A1 for UART mode
+		UCA1CTLW0 = UCSWRST;                    // Put eUSCI in reset
+		UCA1CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
+		UCA1BRW = 52;
+		UCA1MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
+		UCA1CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+		UCA1IE |= UCRXIE;                       // Enable USCI_A1 RX interrupt
+		break;
+	case 2:
+		// Configure USCI_A2 for UART mode
+		UCA2CTLW0 = UCSWRST;                    // Put eUSCI in reset
+		UCA2CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
+		UCA2BRW = 52;
+		UCA2MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
+		UCA2CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+		UCA2IE |= UCRXIE;                       // Enable USCI_A2 RX interrupt
+		break;
+	case 3:
+		// Configure USCI_A3 for UART mode
+		UCA3CTLW0 = UCSWRST;                    // Put eUSCI in reset
+		UCA3CTLW0 |= UCSSEL__SMCLK;             // CLK = SMCLK
+		UCA3BRW = 52;
+		UCA3MCTLW |= UCOS16 | UCBRF_1 | 0x4900;
+		UCA3CTLW0 &= ~UCSWRST;                  // Initialize eUSCI
+		UCA3IE |= UCRXIE;                       // Enable USCI_A3 RX interrupt
+		break;
+	default: break;
 	}
-	uart_readDoneFG = 0;
-    UCA3IE |= UCRXIE;                        // Enable USCI_A3 RX interrupt
-    while(uart_readDoneFG == 0) ;
-    UCA3IE &= ~UCRXIE;                       // Disable USCI_A3 RX interrupt
 }
-
-void UART_B3_read_response(volatile int* RXSWFG3){ // TODO: need to get passed in?
+void UART_read_response(int brd_num, volatile int* RXSWFG){
 	int index = 0;
 	int Done = 0;
 	int read_index = 0;
 	while(Done == 0){
-		while(*RXSWFG3 == 0) ;
-		uart_b3_read_buffer[index] = UCA3RXBUF;
+		while(*RXSWFG == 0) ;
+		switch(brd_num)
+		{
+		case 0:
+			uart_read_buffer[brd_num][index] = UCA0RXBUF;
+			break;
+		case 1:
+			uart_read_buffer[brd_num][index] = UCA1RXBUF;
+			break;
+		case 2:
+			uart_read_buffer[brd_num][index] = UCA2RXBUF;
+			break;
+		case 3:
+			uart_read_buffer[brd_num][index] = UCA3RXBUF;
+			break;
+		default: break;
+		}
 	// LISTENING_FOR_RESPONSE
-		if(uart_b3_fsm_state == LISTENING_FOR_RESPONSE){
-			if(uart_b3_read_buffer[index] == 0x7B){
-				uart_b3_fsm_state = CAPTURING_RESPONSE;
+		if(uart_fsm_state[brd_num] == LISTENING_FOR_RESPONSE){
+			if(uart_read_buffer[brd_num][index] == 0x7B){
+				uart_fsm_state[brd_num] = CAPTURING_RESPONSE;
 				read_index = 0; // May cause overwriting in future
 			}
 			else{
@@ -90,10 +178,10 @@ void UART_B3_read_response(volatile int* RXSWFG3){ // TODO: need to get passed i
 			}
 		}
 	// CAPTURING_RESPONSE
-		if(uart_b3_fsm_state == CAPTURING_RESPONSE){
-			uart_b3_read_message[read_index] = uart_b3_read_buffer[index];
-			if(uart_b3_read_message[read_index] == 0x7D){
-				uart_b3_fsm_state = LISTENING_FOR_RESPONSE;
+		if(uart_fsm_state[brd_num] == CAPTURING_RESPONSE){
+			uart_read_message[brd_num][read_index] = uart_read_buffer[brd_num][index];
+			if(uart_read_message[brd_num][read_index] == 0x7D){
+				uart_fsm_state[brd_num] = LISTENING_FOR_RESPONSE;
 				Done = 1; // reset where?
 			} // TODO: some check for '\0' in uart_response so don't overwrite next array of chars.
 			else{
@@ -104,30 +192,53 @@ void UART_B3_read_response(volatile int* RXSWFG3){ // TODO: need to get passed i
 		if(index == MSG_LEN){
 			index = 0;
 		}
-		*RXSWFG3 = 0;
+		*RXSWFG = 0;
 	}
 }
 
-void UART_write_msg(char* message){
+void UART_write_msg(int brd_num, char* message){
 	int i;
 	i = 0;
-	while(message[i] != '\0'){
+	switch(brd_num)
+	{
+	case 0:
+		while(message[i] != '\0'){
+			while(!(UCA0IFG&UCTXIFG));
+			UCA0TXBUF = message[i];
+			i++;
+		}
+		while(!(UCA0IFG&UCTXIFG));
+		UCA0TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+		break;
+	case 1:
+		while(message[i] != '\0'){
+			while(!(UCA1IFG&UCTXIFG));
+			UCA1TXBUF = message[i];
+			i++;
+		}
+		while(!(UCA1IFG&UCTXIFG));
+		UCA1TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+		break;
+	case 2:
+		while(message[i] != '\0'){
+			while(!(UCA2IFG&UCTXIFG));
+			UCA2TXBUF = message[i];
+			i++;
+		}
+		while(!(UCA2IFG&UCTXIFG));
+		UCA2TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+		break;
+	case 3:
+		while(message[i] != '\0'){
+			while(!(UCA3IFG&UCTXIFG));
+			UCA3TXBUF = message[i];
+			i++;
+		}
 		while(!(UCA3IFG&UCTXIFG));
-		UCA3TXBUF = message[i];
-		i++;
+		UCA3TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+		break;
+	default: break;
 	}
-	while(!(UCA3IFG&UCTXIFG));
-	UCA3TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
-}
-
-//obsolete due to strcpy?
-void array_copy(char array_from[],char array_to[]){
-	int i = 0;
-	while(array_from[i]!='\0'){
-		array_to[i]=array_from[i];
-		i++;
-	}
-	array_to[i]='\0';
 }
 
 void chris_init(void){

@@ -48,5 +48,6 @@
 int get_colon_count(const char* s);
 void rmv_start_end_chars(char* s);
 void parse_cmd_from_comms(char* msg);
-
+void one_colon_extract(char* msg, char** first, char** second);
+void two_colon_extract(char* msg, char** first, char** second, char** third);
 #endif /* HABIP_COMMAND_INTERFACE_H_ */

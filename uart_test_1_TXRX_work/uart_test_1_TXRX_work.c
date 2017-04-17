@@ -80,8 +80,16 @@
 #include <string.h>
 
 // UART UD Variables
-extern char uart_v3_read_buffer[MSG_LEN];
+//extern char uart_b0_read_buffer[MSG_LEN];
+//extern char uart_b0_read_message[MSG_LEN];
+//extern char uart_b1_read_buffer[MSG_LEN];
+//extern char uart_b1_read_message[MSG_LEN];
+//extern char uart_b2_read_buffer[MSG_LEN];
+//extern char uart_b2_read_message[MSG_LEN];
+extern char uart_b3_read_buffer[MSG_LEN];
 extern char uart_b3_read_message[MSG_LEN];
+extern char uart_read_buffer[4][MSG_LEN];
+extern char uart_read_message[4][MSG_LEN];
 //extern char* uart_response;
 extern int uart_index;
 extern int uart_readDoneFG;
@@ -120,53 +128,6 @@ char* board_list[5] = {	"B0", // Pi Hat 0 - UCA0 - "UART_1" - J1
 			"B4" // Self / Motor MSP - Host-UCB0 - Motor-UCA0 SPI
 		};
 
-//// Pi Hat Board Sensor Info Indicies
-//#define PI_HAT_SENSOR_CNT 10
-//#define PI_TD0 0
-//#define PI_TB0 1
-//#define PI_TB1 2
-//#define PI_TE0 3
-//#define PI_TE1 4
-//#define PI_P0 5
-//#define PI_P1 6
-//#define PI_H 7
-//#define PI_V 8
-//#define PI_C 9
-//char response_buffer_b0[PI_HAT_SENSOR_CNT][MSG_LEN]={};
-//char response_buffer_b1[PI_HAT_SENSOR_CNT][MSG_LEN]={};
-//char response_buffer_b2[PI_HAT_SENSOR_CNT][MSG_LEN]={};
-//char response_buffer_b3[PI_HAT_SENSOR_CNT][MSG_LEN]={};
-
-//// DAQCS Board Sensor Info Indicies
-//#define DAQCS_SENSOR_CNT 16
-//#define DQ_TB0 0
-//#define DQ_P0 1
-//#define DQ_PB 2
-//#define DQ_V 3
-//#define DQ_C 4
-//#define DQ_XGY 5
-//#define DQ_XAC 6
-//#define DQ_YGY 7
-//#define DQ_YAC 8
-//#define DQ_ZGY 9
-//#define DQ_ZAC 10
-//#define DQ_MS 11
-//#define DQ_MC 12
-//#define DQ_MV 13
-//#define DQ_MD 14
-//#define DQ_ME 15
-//char response_buffer_b4[DAQCS_SENSOR_CNT][MSG_LEN]={};
-
-//// response_buffer data status
-//#define OLD 0x00
-//#define NEW 0x01
-//#define ERROR 0xEE
-//char response_status_b0[PI_HAT_SENSOR_CNT] = {{OLD}};
-//char response_status_b1[PI_HAT_SENSOR_CNT] = {{OLD}};
-//char response_status_b2[PI_HAT_SENSOR_CNT] = {{OLD}};
-//char response_status_b3[PI_HAT_SENSOR_CNT] = {{OLD}};
-//char response_status_b4[DAQCS_SENSOR_CNT] = {{OLD}};
-
 //temp
 void test_strcmp(void);
 void test_strcpy(void);
@@ -200,7 +161,10 @@ int main(void)
 
 // Configure GPIO
     config_DS4_LED();
-    config_UART_B3_GPIO();
+    config_UART_GPIO(0);
+    config_UART_GPIO(1);
+    config_UART_GPIO(2);
+    config_UART_GPIO(3);
 //    config_XT1_GPIO();						// XT1 Crystal
 
 // Configure Clock
@@ -209,24 +173,47 @@ int main(void)
 
 // Configure UART
 //    config_UART_4_9600_ACLK_32768Hz();
-    config_UART_B3_9600_SMCLK_8MHz();
+    config_UART_9600_SMCLK_8MHz(0);
+    config_UART_9600_SMCLK_8MHz(1);
+    config_UART_9600_SMCLK_8MHz(2);
+    config_UART_9600_SMCLK_8MHz(3);
 
     __bis_SR_register(GIE);
 
 // Begin Main Code
+    char UART_num[MSG_LEN];
 while(1){
-//	UART_B3_read_response(&RXSWFG3);
-//	parse_cmd_from_comms(uart_b3_read_message);
-	char* cmd = "";
-	char* val = "";
-	char msg[MSG_LEN];
-	strcpy(msg,"{06:1234567890}");
-	rmv_start_end_chars(msg);
-//	rmv_start_end_chars(uart_b3_read_message);
-//	three_colon_extract(uart_b3_read_message,&cmd,&brd,&sns);
-	one_colon_extract(msg,&cmd,&val);
-	strcpy(response_buffer_b0[0],cmd);
-	strcpy(response_buffer_b0[1],val);
+	if(RXSWFG0){
+		UART_read_response(0,&RXSWFG0);
+		strcpy(UART_num,"UART_0----");
+		strcat(UART_num,uart_read_message[0]);
+//		UART_write_msg(uart_read_message[0]);
+		UART_write_msg(0,UART_num);
+	}
+	else if(RXSWFG1){
+		UART_read_response(1,&RXSWFG1);
+		strcpy(UART_num,"UART_1----");
+		strcat(UART_num,uart_read_message[1]);
+//		UART_write_msg(uart_read_message[1]);
+		UART_write_msg(1,UART_num);
+	}
+	else if(RXSWFG2){
+		UART_read_response(2,&RXSWFG2);
+		strcpy(UART_num,"UART_2----");
+		strcat(UART_num,uart_read_message[2]);
+//		UART_write_msg(uart_read_message[2]);
+		UART_write_msg(2,UART_num);
+	}
+	else if(RXSWFG3){
+		UART_read_response(3,&RXSWFG3);
+		strcpy(UART_num,"UART_3----");
+		strcat(UART_num,uart_read_message[3]);
+//		UART_write_msg(uart_read_message[3]);
+		UART_write_msg(3,UART_num);
+	}
+	else {
+		__no_operation();
+	}
 	__no_operation();
 }
 // End Main Code
@@ -258,15 +245,15 @@ void test_strtok(void){
 //	UART_write_msg(command);
 //	UART_write_msg(board);
 //	UART_write_msg(sensor);
-	if(strcmp(pcommand,"00")==0){
-		UART_write_msg(pcommand);
-	}
-	if(strcmp(pboard,"B0")==0){
-		UART_write_msg(pboard);
-	}
-	if(strcmp(psensor,"TD0")==0){
-		UART_write_msg(psensor);
-	}
+//	if(strcmp(pcommand,"00")==0){
+//		UART_write_msg(pcommand);
+//	}
+//	if(strcmp(pboard,"B0")==0){
+//		UART_write_msg(pboard);
+//	}
+//	if(strcmp(psensor,"TD0")==0){
+//		UART_write_msg(psensor);
+//	}
 	__no_operation();
 }
 void test_removing_7B(void){
@@ -277,7 +264,7 @@ void test_removing_7B(void){
 	else {
 		strcpy(response_buffer_b0[PI_TD0],"'{' not at beginning");
 	}
-	UART_write_msg(response_buffer_b0[PI_TD0]);
+	UART_write_msg(0,response_buffer_b0[PI_TD0]);
 }
 void test_removing_7D(void){
 	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
@@ -292,7 +279,7 @@ void test_removing_7D(void){
 	else {
 		strcpy(response_buffer_b0[PI_TD0],"'}' not at end");
 	}
-	UART_write_msg(response_buffer_b0[PI_TD0]);
+	UART_write_msg(0,response_buffer_b0[PI_TD0]);
 }
 void test_strstr(void){
 	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
@@ -311,7 +298,7 @@ void test_extraction_command(void){
 	else {
 		strncpy(command_val,response_buffer_b0[PI_TD0],strlen(response_buffer_b0[PI_TD0])-strlen(leftover));
 	}
-	UART_write_msg(command_val);
+	UART_write_msg(0,command_val);
 }
 void test_strcat(void){
 	// Test Results
@@ -323,7 +310,7 @@ void test_strcat(void){
 //	strcat(response_buffer_b0[PI_TD0],response_buffer_b0[PI_TB0]);
 //	strcat(response_buffer_b0[PI_TD0],"1490}");
 	strcat(response_buffer_b0[PI_TD0],commands[0]);
-	UART_write_msg(response_buffer_b0[PI_TD0]);
+	UART_write_msg(0,response_buffer_b0[PI_TD0]);
 }
 void test_strcmp(void){
 	// Test Results
@@ -340,7 +327,7 @@ void test_strcmp(void){
     strcpy(response_buffer_b0[PI_TD0],commands[0]);
     result = strcmp(response_buffer_b0[PI_TD0],commands[1]); // SUCCESS
     if(result == 0) {
-    	UART_write_msg("Great Success YO Swag");
+    	UART_write_msg(0,"Great Success YO Swag");
     }
 }
 void test_strcpy(void){
@@ -366,7 +353,7 @@ void test_strcpy(void){
 //	UART_write_msg(response_buffer_b0[PI_TB0]); // Overflow happens
 	strcpy(response_buffer_b0[PI_TD0],"1234567890123456");
 	strcpy(response_buffer_b0[PI_TD0],commands[2]);
-	UART_write_msg(response_buffer_b0[PI_TD0]);
+	UART_write_msg(0,response_buffer_b0[PI_TD0]);
 }
 
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
