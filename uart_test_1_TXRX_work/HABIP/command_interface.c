@@ -48,6 +48,8 @@ int get_colon_count(const char* s){
 }
 
 void parse_cmd_from_comms(char* msg){
+	char msg_orig[MSG_LEN];
+	strcpy(msg_orig,msg);
 	rmv_start_end_chars(msg);
 	int count = get_colon_count(msg);
 	switch(count)
@@ -55,8 +57,7 @@ void parse_cmd_from_comms(char* msg){
 			case 0:
 				// Insert specific code for handling 0 colon commands or call fnc
 				if(strcmp(msg,"01")==0){
-					// Insert message sends to all 5 ?
-					// Update State machine to be receiving all ? or just grab from latest?
+					// Respond back with latest of every sensor imaginable from reponse_buffer for each board
 				}
 				else if(strcmp(msg,"FF")==0){
 					// Trigger Cutdown
@@ -67,30 +68,30 @@ void parse_cmd_from_comms(char* msg){
 				break;
 			case 1:
 				// Insert specific code for handling 1 colon commands or call fnc
-				char* comms_cmd = "";
-				char* comms_val = "";
-				one_colon_extraction(msg,&comms_cmd,&comms_val);
-				if((strcmp(comms_cmd,"03")==0)||(strcmp(comms_cmd,"04")==0)){
+				char* comms2_cmd = "";
+				char* comms2_val = "";
+				one_colon_extraction(msg,&comms2_cmd,&comms2_val);
+				if((strcmp(comms2_cmd,"03")==0)||(strcmp(comms2_cmd,"04")==0)){
 					// forward reaction wheel command to motor msp
 				}
-				else if(strcmp(comms_cmd,"05")==0){
-					if(strcmp(comms_val,"B0")==0){
+				else if(strcmp(comms2_cmd,"05")==0){
+					if(strcmp(comms2_val,"B0")==0){
 						// Send Board Reset to B0
 					}
-					else if(strcmp(comms_val,"B1")==0){
+					else if(strcmp(comms2_val,"B1")==0){
 						// Send Board Reset to B1
 					}
-					else if(strcmp(comms_val,"B2")==0){
+					else if(strcmp(comms2_val,"B2")==0){
 						// Send Board Reset to B2
 					}
-					else if(strcmp(comms_val,"B3")==0){
+					else if(strcmp(comms2_val,"B3")==0){
 						// Send Board Reset to B3
 					}
 					else {
 						// error msg?
 					}
 				}
-				else if(strcmp(comms_cmd,"06")==0){
+				else if(strcmp(comms2_cmd,"06")==0){
 					// send same msg to all 4 pis and to motor MSP
 					// update own timestamp.
 				}
@@ -101,11 +102,31 @@ void parse_cmd_from_comms(char* msg){
 				break;
 			case 2:
 				// Insert specific code for handling 2 colon commands or call fnc
-				char* comms_cmd = "";
-				char* comms_brd = "";
-				char* comms_sns = "";
-				two_colon_extraction(msg,&comms_cmd,&comms_brd,&comms_sns);
-
+				char* comms3_cmd = "";
+				char* comms3_brd = "";
+				char* comms3_sns = "";
+				two_colon_extraction(msg,&comms3_cmd,&comms3_brd,&comms3_sns);
+				// TODO: LP future can do error checking for making sure valid msg from comms for other areas
+				if(strcmp(comms3_brd,"B0")==0){
+					// forward command to B0
+				}
+				else if(strcmp(comms3_brd,"B1")==0){
+					// forward command to B1
+				}
+				else if(strcmp(comms3_brd,"B2")==0){
+					// forward command to B2
+				}
+				else if(strcmp(comms3_brd,"B3")==0){
+					// forward command to B3
+					// TODO: decide on adding logic to ensure a response for every 00 sent
+				}
+				else if(strcmp(comms3_brd,"B4")==0){
+					// forward command to Motor MSP
+					// note sensors may be deactivated atm
+				}
+				else {
+					// error msg?
+				}
 				break;
 
 			default: break;
