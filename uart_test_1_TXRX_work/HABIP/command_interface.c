@@ -76,8 +76,11 @@ void parse_cmd_from_comms(char* msg){
 			default: break;
 		}
 }
-
-void three_colon_extract(char* msg, char** first, char** second, char** third){
+void one_colon_extract(char* msg, char** first, char** second){
+	*first = strtok(msg,":");
+	*second = strtok(NULL,":");
+}
+void two_colon_extract(char* msg, char** first, char** second, char** third){
 	*first = strtok(msg,":");
 	*second = strtok(NULL,":");
 	*third = strtok(NULL,":");

@@ -218,17 +218,15 @@ while(1){
 //	UART_B3_read_response(&RXSWFG3);
 //	parse_cmd_from_comms(uart_b3_read_message);
 	char* cmd = "";
-	char* brd = "";
-	char* sns = "";
+	char* val = "";
 	char msg[MSG_LEN];
-	strcpy(msg,"{00:B3:TB0}");
+	strcpy(msg,"{06:1234567890}");
 	rmv_start_end_chars(msg);
 //	rmv_start_end_chars(uart_b3_read_message);
 //	three_colon_extract(uart_b3_read_message,&cmd,&brd,&sns);
-	three_colon_extract(msg,&cmd,&brd,&sns);
+	one_colon_extract(msg,&cmd,&val);
 	strcpy(response_buffer_b0[0],cmd);
-	strcpy(response_buffer_b0[1],brd);
-	strcpy(response_buffer_b0[2],sns);
+	strcpy(response_buffer_b0[1],val);
 	__no_operation();
 }
 // End Main Code
