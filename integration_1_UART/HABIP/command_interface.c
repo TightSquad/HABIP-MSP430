@@ -12,12 +12,14 @@ char response_buffer_b0[PI_HAT_SENSOR_CNT][MSG_LEN]={};
 char response_buffer_b1[PI_HAT_SENSOR_CNT][MSG_LEN]={};
 char response_buffer_b2[PI_HAT_SENSOR_CNT][MSG_LEN]={};
 char response_buffer_b3[PI_HAT_SENSOR_CNT][MSG_LEN]={};
+char response_buffer[4][PI_HAT_SENSOR_CNT][MSG_LEN]={};
 char response_buffer_b4[DAQCS_SENSOR_CNT][MSG_LEN]={};
 
 char response_status_b0[PI_HAT_SENSOR_CNT] = {{OLD}};
 char response_status_b1[PI_HAT_SENSOR_CNT] = {{OLD}};
 char response_status_b2[PI_HAT_SENSOR_CNT] = {{OLD}};
 char response_status_b3[PI_HAT_SENSOR_CNT] = {{OLD}};
+char response_status[4][PI_HAT_SENSOR_CNT] = {{{OLD}}};
 char response_status_b4[DAQCS_SENSOR_CNT] = {{OLD}};
 
 void rmv_start_end_chars(char* s){
@@ -46,7 +48,171 @@ int get_colon_count(const char* s){
 		}
 	}
 }
+char* rw_response_val(char rw,int brd_num,char* sns, char*val){
+	if((brd_num > 4)||((rw != 'w')&&(rw != 'r'))){
+		// error msg?
+	}
+	if((brd_num >= 0) && (brd_num <= 3)){
+		if(strcmp(sns,"TD0")==0){
+			if(rw == 'r'){
+				response_status[brd_num][PI_TD0] = OLD;
+				return response_buffer[brd_num][PI_TD0];
+			}
+			strcpy(response_buffer[brd_num][PI_TD0],val);
+			response_status[brd_num][PI_TD0] = NEW;
+		}
+		else if(strcmp(sns,"TB0")==0){
+			if(rw == 'r'){
+				response_status[brd_num][PI_TB0] = OLD;
+				return response_buffer[brd_num][PI_TB0];
+			}
+			strcpy(response_buffer[brd_num][PI_TB0],val); // TODO: Null char needed?
+			response_status[brd_num][PI_TB0] = NEW;
+		}
+		else if(strcmp(sns,"TB1")==0){
+			strcpy(response_buffer[brd_num][PI_TB1],val);
+			response_status[brd_num][PI_TB1] = NEW;
+		}
+		else if(strcmp(sns,"TE0")==0){
+			strcpy(response_buffer[brd_num][PI_TE0],val);
+			response_status[brd_num][PI_TE0] = NEW;
+		}
+		else if(strcmp(sns,"TE1")==0){
+			strcpy(response_buffer[brd_num][PI_TE1],val);
+			response_status[brd_num][PI_TE1] = NEW;
+		}
+		else if(strcmp(sns,"P0")==0){
+			strcpy(response_buffer[brd_num][PI_P0],val);
+			response_status[brd_num][PI_P0] = NEW;
+		}
+		else if(strcmp(sns,"P1")==0){
+			strcpy(response_buffer[brd_num][PI_P1],val);
+			response_status[brd_num][PI_P1] = NEW;
+		}
+		else if(strcmp(sns,"H")==0){
+			strcpy(response_buffer[brd_num][PI_H],val);
+			response_status[brd_num][PI_H] = NEW;
+		}
+		else if(strcmp(sns,"V")==0){
+			strcpy(response_buffer[brd_num][PI_V],val);
+			response_status[brd_num][PI_V] = NEW;
+		}
+		else if(strcmp(sns,"C")==0){
+			strcpy(response_buffer[brd_num][PI_C],val);
+			response_status[brd_num][PI_C] = NEW;
+		}
+		else {
+			// error msg?
+		}
+	}
+	else if(brd_num == 4){
+		if(strcmp(sns,"TB0")==0){
+			strcpy(response_buffer_b4[DQ_TB0],val);
+			response_status_b4[DQ_TB0] = NEW;
+		}
+		else if(strcmp(sns,"P0")==0){
+			strcpy(response_buffer_b4[DQ_P0],val);
+			response_status_b4[DQ_P0] = NEW;
+		}
+		else if(strcmp(sns,"PB")==0){
+			strcpy(response_buffer_b4[DQ_PB],val);
+			response_status_b4[DQ_PB] = NEW;
+		}
+		else if(strcmp(sns,"V")==0){
+			strcpy(response_buffer_b4[DQ_V],val);
+			response_status_b4[DQ_V] = NEW;
+		}
+		else if(strcmp(sns,"C")==0){
+			strcpy(response_buffer_b4[DQ_C],val);
+			response_status_b4[DQ_C] = NEW;
+		}
+		else if(strcmp(sns,"XGY")==0){
+			strcpy(response_buffer_b4[DQ_XGY],val);
+			response_status_b4[DQ_XGY] = NEW;
+		}
+		else if(strcmp(sns,"XAC")==0){
+			strcpy(response_buffer_b4[DQ_XAC],val);
+			response_status_b4[DQ_XAC] = NEW;
+		}
+		else if(strcmp(sns,"YGY")==0){
+			strcpy(response_buffer_b4[DQ_YGY],val);
+			response_status_b4[DQ_YGY] = NEW;
+		}
+		else if(strcmp(sns,"YAC")==0){
+			strcpy(response_buffer_b4[DQ_YAC],val);
+			response_status_b4[DQ_YAC] = NEW;
+		}
+		else if(strcmp(sns,"ZGY")==0){
+			strcpy(response_buffer_b4[DQ_ZGY],val);
+			response_status_b4[DQ_ZGY] = NEW;
+		}
+		else if(strcmp(sns,"ZAC")==0){
+			strcpy(response_buffer_b4[DQ_ZAC],val);
+			response_status_b4[DQ_ZAC] = NEW;
+		}
+		else if(strcmp(sns,"MS")==0){
+			strcpy(response_buffer_b4[DQ_MS],val);
+			response_status_b4[DQ_MS] = NEW;
+		}
+		else if(strcmp(sns,"MC")==0){
+			strcpy(response_buffer_b4[DQ_MC],val);
+			response_status_b4[DQ_MC] = NEW;
+		}
+		else if(strcmp(sns,"MV")==0){
+			strcpy(response_buffer_b4[DQ_MV],val);
+			response_status_b4[DQ_MV] = NEW;
+		}
+		else if(strcmp(sns,"MD")==0){
+			strcpy(response_buffer_b4[DQ_MD],val);
+			response_status_b4[DQ_MD] = NEW;
+		}
+		else if(strcmp(sns,"ME")==0){
+			strcpy(response_buffer_b4[DQ_ME],val);
+			response_status_b4[DQ_ME] = NEW;
+		}
+		else {
+			// error msg?
+		}
+	}
+	else {
+		// error msg?
+	}
+}
+void parse_cmd_from_comms(char* msg){
+	char msg_orig[MSG_LEN];
+	char* resp_brd = "";
+	char* resp_sns = "";
+	char* resp_val = "";
+	strcpy(msg_orig,msg);
+	rmv_start_end_chars(msg);
+	int count = get_colon_count(msg);
+	if (count == 2){
+		// Insert specific code for handling 2 colon commands or call fnc
+		two_colon_extract(msg,&resp_brd,&resp_sns,&resp_val);
+		// TODO: LP future can do error checking for making sure valid msg
+		if(strcmp(resp_brd,"B0")==0){
 
+		}
+		else if(strcmp(resp_brd,"B1")==0){
+
+		}
+		else if(strcmp(resp_brd,"B2")==0){
+
+		}
+		else if(strcmp(resp_brd,"B3")==0){
+
+		}
+		else if(strcmp(resp_brd,"B4")==0){
+
+		}
+		else {
+			// error msg?
+		}
+	}
+	else {
+		// error msg
+	}
+}
 void parse_cmd_from_comms(char* msg){
 	char msg_orig[MSG_LEN];
 	char* comms2_cmd = "";

@@ -121,12 +121,14 @@ extern char response_buffer_b0[PI_HAT_SENSOR_CNT][MSG_LEN];
 extern char response_buffer_b1[PI_HAT_SENSOR_CNT][MSG_LEN];
 extern char response_buffer_b2[PI_HAT_SENSOR_CNT][MSG_LEN];
 extern char response_buffer_b3[PI_HAT_SENSOR_CNT][MSG_LEN];
+extern char response_buffer[4][PI_HAT_SENSOR_CNT][MSG_LEN];
 extern char response_buffer_b4[DAQCS_SENSOR_CNT][MSG_LEN];
 
 extern char response_status_b0[PI_HAT_SENSOR_CNT];
 extern char response_status_b1[PI_HAT_SENSOR_CNT];
 extern char response_status_b2[PI_HAT_SENSOR_CNT];
 extern char response_status_b3[PI_HAT_SENSOR_CNT];
+extern char response_status[4][PI_HAT_SENSOR_CNT];
 extern char response_status_b4[DAQCS_SENSOR_CNT];
 
 //*********************************************************************************************************//
