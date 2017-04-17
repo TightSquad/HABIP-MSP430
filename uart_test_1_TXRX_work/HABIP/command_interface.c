@@ -59,7 +59,7 @@ void parse_cmd_from_comms(char* msg){
 					// Update State machine to be receiving all ? or just grab from latest?
 				}
 				else if(strcmp(msg,"FF")==0){
-					// Cutdown
+					// Trigger Cutdown
 				}
 				else {
 					// error msg?
@@ -67,10 +67,42 @@ void parse_cmd_from_comms(char* msg){
 				break;
 			case 1:
 				// Insert specific code for handling 1 colon commands or call fnc
+				char* comms_cmd = "";
+				char* comms_val = "";
+				one_colon_extraction(msg,&comms_cmd,&comms_val);
+				if(strcmp(comms_cmd,"05")==0){
+					if(strcmp(comms_val,"B0")==0){
+						// Send Board Reset to B0
+					}
+					else if(strcmp(comms_val,"B1")==0){
+						// Send Board Reset to B1
+					}
+					else if(strcmp(comms_val,"B2")==0){
+						// Send Board Reset to B2
+					}
+					else if(strcmp(comms_val,"B3")==0){
+						// Send Board Reset to B3
+					}
+					else {
+						// error msg?
+					}
+				}
+				else if(strcmp(comms_cmd,"06")==0){
+					// send same msg to all 4 pis and to motor MSP
+					// update own timestamp.
+				}
+				else {
+					// error msg?
+				}
 
 				break;
 			case 2:
 				// Insert specific code for handling 2 colon commands or call fnc
+				char* comms_cmd = "";
+				char* comms_brd = "";
+				char* comms_sns = "";
+				two_colon_extraction(msg,&comms_cmd,&comms_brd,&comms_sns);
+
 				break;
 
 			default: break;
