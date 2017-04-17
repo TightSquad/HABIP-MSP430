@@ -70,7 +70,10 @@ void parse_cmd_from_comms(char* msg){
 				char* comms_cmd = "";
 				char* comms_val = "";
 				one_colon_extraction(msg,&comms_cmd,&comms_val);
-				if(strcmp(comms_cmd,"05")==0){
+				if((strcmp(comms_cmd,"03")==0)||(strcmp(comms_cmd,"04")==0)){
+					// forward reaction wheel command to motor msp
+				}
+				else if(strcmp(comms_cmd,"05")==0){
 					if(strcmp(comms_val,"B0")==0){
 						// Send Board Reset to B0
 					}
