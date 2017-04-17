@@ -54,9 +54,20 @@ void parse_cmd_from_comms(char* msg){
 		{
 			case 0:
 				// Insert specific code for handling 0 colon commands or call fnc
+				if(strcmp(msg,"01")==0){
+					// Insert message sends to all 5 ?
+					// Update State machine to be receiving all ? or just grab from latest?
+				}
+				else if(strcmp(msg,"FF")==0){
+					// Cutdown
+				}
+				else {
+					// error msg?
+				}
 				break;
 			case 1:
 				// Insert specific code for handling 1 colon commands or call fnc
+
 				break;
 			case 2:
 				// Insert specific code for handling 2 colon commands or call fnc

@@ -191,7 +191,8 @@ extern char response_status_b2[PI_HAT_SENSOR_CNT];
 extern char response_status_b3[PI_HAT_SENSOR_CNT];
 extern char response_status_b4[DAQCS_SENSOR_CNT];
 
-
+//temp
+void three_colon_extract(char* msg, char** cmd, char** brd, char** sns);
 //*********************************************************************************************************//
 int main(void)
 {
@@ -214,15 +215,32 @@ int main(void)
 
 // Begin Main Code
 while(1){
-	UART_B3_read_response(&RXSWFG3);
-	parse_cmd_from_comms(uart_b3_read_message);
+//	UART_B3_read_response(&RXSWFG3);
+//	parse_cmd_from_comms(uart_b3_read_message);
+	char* cmd = "";
+	char* brd = "";
+	char* sns = "";
+	char msg[MSG_LEN];
+	strcpy(msg,"{00:B2:TB0}");
+	rmv_start_end_chars(msg);
+//	rmv_start_end_chars(uart_b3_read_message);
+//	three_colon_extract(uart_b3_read_message,&cmd,&brd,&sns);
+	three_colon_extract(msg,&cmd,&brd,&sns);
+	strcpy(response_buffer_b0[0],cmd);
+	strcpy(response_buffer_b0[1],brd);
+	strcpy(response_buffer_b0[2],sns);
+	__no_operation();
 }
 // End Main Code
 
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
-
+void three_colon_extract(char* msg, char** first, char** second, char** third){
+	*first = strtok(msg,":");
+	*second = strtok(NULL,":");
+	*third = strtok(NULL,":");
+}
 void test_strtok(void){
 	strcpy(response_buffer_b0[PI_TD0],"{00:B0:TD0}");
 	char* pcommand;
