@@ -36,15 +36,8 @@ Calendar currTime;
 unsigned char count = 0;
 unsigned long data;
 
-#if defined(__TI_COMPILER_VERSION__)
 #pragma PERSISTENT(FRAM_write)
 signed int FRAM_write[WRITE_SIZE][COL_SIZE] = {0};
-#elif defined(__IAR_SYSTEMS_ICC__)
-__persistent signed int FRAM_write[WRITE_SIZE][COL_SIZE] = {0};
-#else
-#error Compiler not supported!
-#endif
-
 
 void Init_GPIO(void);
 void Init_Clock(void);
@@ -55,7 +48,7 @@ void blinkP1OUT(int blink_number);
 
 //signed int data_array [500];
 //signed int ms_array [500];
-//signed int sd_data_matrix[5000][4];
+//uint8_t FRAM_write[6000][4];
 
 
 //-----------------------------------------------------------------------------
@@ -140,6 +133,7 @@ int main(void) {
 		currTime = RTC_C_getCalendarTime(RTC_C_BASE);
 		curr_sec = currTime.Seconds;
 		FRAM_write[row][0] = curr_sec;
+
 
 		//grab RTC counter
 		rtc_ms =  RTCPS;
@@ -263,7 +257,7 @@ void Init_GPIO()
  */
 void Init_Clock()
 {
-    // Set DCO frequency to 16 MHz
+    // Set DCO frequency to 8 MHz
     CS_setDCOFreq(CS_DCORSEL_0, CS_DCOFSEL_6);
     //Set external clock frequency to 32.768 KHz
     CS_setExternalClockSource(32768, 0);
