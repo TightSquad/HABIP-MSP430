@@ -7,6 +7,7 @@
 #include "command_interface.h"
 #include <string.h>
 #include "common.h"
+#include "uart.h"
 
 char response_buffer_b0[PI_HAT_SENSOR_CNT][MSG_LEN]={};
 char response_buffer_b1[PI_HAT_SENSOR_CNT][MSG_LEN]={};
@@ -48,24 +49,140 @@ int get_colon_count(const char* s){
 		}
 	}
 }
-char* rw_response_val(char rw,int brd_num,char* sns, char*val){
-	if((brd_num > 4)||((rw != 'w')&&(rw != 'r'))){
+// TODO: Auto Baud Rate
+void read_response_val(int brd_num, char* sns, char** val){
+	if(!((brd_num>=0)&&(brd_num<=4))){
 		// error msg?
 	}
 	if((brd_num >= 0) && (brd_num <= 3)){
 		if(strcmp(sns,"TD0")==0){
-			if(rw == 'r'){
-				response_status[brd_num][PI_TD0] = OLD;
-				return response_buffer[brd_num][PI_TD0];
-			}
+			response_status[brd_num][PI_TD0] = OLD;
+			strcpy(*val,response_buffer[brd_num][PI_TD0]);
+		}
+		else if(strcmp(sns,"TB0")==0){
+			response_status[brd_num][PI_TB0] = OLD;
+			strcpy(*val,response_buffer[brd_num][PI_TB0]);
+		}
+		else if(strcmp(sns,"TB1")==0){
+			response_status[brd_num][PI_TB1] = OLD;
+			strcpy(*val,response_buffer[brd_num][PI_TB1]);
+		}
+		else if(strcmp(sns,"TE0")==0){
+			response_status[brd_num][PI_TE0] = OLD;
+			strcpy(*val,response_buffer[brd_num][PI_TE0]);
+		}
+		else if(strcmp(sns,"TE1")==0){
+			response_status[brd_num][PI_TE1] = OLD;
+			strcpy(*val,response_buffer[brd_num][PI_TE1]);
+		}
+		else if(strcmp(sns,"P0")==0){
+			response_status[brd_num][PI_P0] = OLD;
+			strcpy(*val,response_buffer[brd_num][PI_P0]);
+		}
+		else if(strcmp(sns,"P1")==0){
+			response_status[brd_num][PI_P1] = OLD;
+			strcpy(*val,response_buffer[brd_num][PI_P1]);
+		}
+		else if(strcmp(sns,"H")==0){
+			response_status[brd_num][PI_H] = OLD;
+			strcpy(*val,response_buffer[brd_num][PI_H]);
+		}
+		else if(strcmp(sns,"V")==0){
+			response_status[brd_num][PI_V] = OLD;
+			strcpy(*val,response_buffer[brd_num][PI_V]);
+		}
+		else if(strcmp(sns,"C")==0){
+			response_status[brd_num][PI_C] = OLD;
+			strcpy(*val,response_buffer[brd_num][PI_C]);
+		}
+		else {
+			// error msg?
+		}
+	}
+	else if(brd_num == 4){
+		if(strcmp(sns,"TB0")==0){
+			response_status_b4[DQ_TB0] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_TB0]);
+		}
+		else if(strcmp(sns,"P0")==0){
+			response_status_b4[DQ_P0] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_P0]);
+		}
+		else if(strcmp(sns,"PB")==0){
+			response_status_b4[DQ_PB] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_PB]);
+		}
+		else if(strcmp(sns,"V")==0){
+			response_status_b4[DQ_V] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_V]);
+		}
+		else if(strcmp(sns,"C")==0){
+			response_status_b4[DQ_C] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_C]);
+		}
+		else if(strcmp(sns,"XGY")==0){
+			response_status_b4[DQ_XGY] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_XGY]);
+		}
+		else if(strcmp(sns,"XAC")==0){
+			response_status_b4[DQ_XAC] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_XAC]);
+		}
+		else if(strcmp(sns,"YGY")==0){
+			response_status_b4[DQ_YGY] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_YGY]);
+		}
+		else if(strcmp(sns,"YAC")==0){
+			response_status_b4[DQ_YAC] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_YAC]);
+		}
+		else if(strcmp(sns,"ZGY")==0){
+			response_status_b4[DQ_ZGY] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_ZGY]);
+		}
+		else if(strcmp(sns,"ZAC")==0){
+			response_status_b4[DQ_ZAC] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_ZAC]);
+		}
+		else if(strcmp(sns,"MS")==0){
+			response_status_b4[DQ_MS] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_MS]);
+		}
+		else if(strcmp(sns,"MC")==0){
+			response_status_b4[DQ_MC] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_MC]);
+		}
+		else if(strcmp(sns,"MV")==0){
+			response_status_b4[DQ_MV] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_MV]);
+		}
+		else if(strcmp(sns,"MD")==0){
+			response_status_b4[DQ_MD] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_MD]);
+		}
+		else if(strcmp(sns,"ME")==0){
+			response_status_b4[DQ_ME] = OLD;
+			strcpy(*val,response_buffer_b4[DQ_ME]);
+		}
+		else {
+			// error msg?
+		}
+	}
+	else {
+		// error msg?
+	}
+}
+// TODO: initializing low for GPIO for cutdown and board resets.
+void store_response_val(int brd_num,char* sns, char*val){
+	if(!((brd_num>=0)&&(brd_num<=4))){
+		// error msg?
+	}
+	if((brd_num >= 0) && (brd_num <= 3)){
+		if(strcmp(sns,"TD0")==0){
 			strcpy(response_buffer[brd_num][PI_TD0],val);
 			response_status[brd_num][PI_TD0] = NEW;
 		}
 		else if(strcmp(sns,"TB0")==0){
-			if(rw == 'r'){
-				response_status[brd_num][PI_TB0] = OLD;
-				return response_buffer[brd_num][PI_TB0];
-			}
 			strcpy(response_buffer[brd_num][PI_TB0],val); // TODO: Null char needed?
 			response_status[brd_num][PI_TB0] = NEW;
 		}
@@ -178,7 +295,7 @@ char* rw_response_val(char rw,int brd_num,char* sns, char*val){
 		// error msg?
 	}
 }
-void parse_cmd_from_comms(char* msg){
+void parse_response(char* msg){
 	char msg_orig[MSG_LEN];
 	char* resp_brd = "";
 	char* resp_sns = "";
@@ -191,19 +308,19 @@ void parse_cmd_from_comms(char* msg){
 		two_colon_extract(msg,&resp_brd,&resp_sns,&resp_val);
 		// TODO: LP future can do error checking for making sure valid msg
 		if(strcmp(resp_brd,"B0")==0){
-
+			store_response_val(0, resp_sns, resp_val);
 		}
 		else if(strcmp(resp_brd,"B1")==0){
-
+			store_response_val(1, resp_sns, resp_val);
 		}
 		else if(strcmp(resp_brd,"B2")==0){
-
+			store_response_val(2, resp_sns, resp_val);
 		}
 		else if(strcmp(resp_brd,"B3")==0){
-
+			store_response_val(3, resp_sns, resp_val);
 		}
 		else if(strcmp(resp_brd,"B4")==0){
-
+			store_response_val(4, resp_sns, resp_val);
 		}
 		else {
 			// error msg?
@@ -228,6 +345,7 @@ void parse_cmd_from_comms(char* msg){
 			case 0:
 				// Insert specific code for handling 0 colon commands or call fnc
 				if(strcmp(msg,"01")==0){
+					//TODO:
 					// Respond back with latest of every sensor imaginable from reponse_buffer for each board
 					// temp send to B0-B3 for testing.
 					UART_write_msg(0,msg_orig);
@@ -236,7 +354,7 @@ void parse_cmd_from_comms(char* msg){
 					UART_write_msg(3,msg_orig);
 				}
 				else if(strcmp(msg,"FF")==0){
-					// Trigger Cutdown
+					// Trigger Cutdown TODO:
 				}
 				else {
 					// error msg?
@@ -250,20 +368,16 @@ void parse_cmd_from_comms(char* msg){
 				}
 				else if(strcmp(comms2_cmd,"05")==0){
 					if(strcmp(comms2_val,"B0")==0){
-						// Forward Board Reset to B0
-						UART_write_msg(0,msg_orig);
+						// Trigger Board Reset to B0 TODO:
 					}
 					else if(strcmp(comms2_val,"B1")==0){
-						// Forward Board Reset to B1
-						UART_write_msg(1,msg_orig);
+						// Trigger Board Reset to B1
 					}
 					else if(strcmp(comms2_val,"B2")==0){
-						// Forward Board Reset to B2
-						UART_write_msg(2,msg_orig);
+						// Trigger Board Reset to B2
 					}
 					else if(strcmp(comms2_val,"B3")==0){
-						// Forward Board Reset to B3
-						UART_write_msg(3,msg_orig);
+						// Trigger Board Reset to B3
 					}
 					else {
 						// error msg?

@@ -193,6 +193,7 @@ void UART_read_response(int brd_num, volatile int* RXSWFG){
 			index = 0;
 		}
 		*RXSWFG = 0;
+//		UART_write_msg(brd_num,"{ACK}");
 	}
 }
 

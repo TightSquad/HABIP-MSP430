@@ -157,25 +157,31 @@ int main(void)
 //    char msg[MSG_LEN];
 //    strcpy(msg,"{00:B0:TD0}")
 while(1){
+	__delay_cycles(8000000);
+//	delay_LED();
 	if(RXSWFG0){
 		UART_read_response(0,&RXSWFG0);
 		UART_write_msg(0,uart_read_message[0]);
-		parse_cmd_from_comms(uart_read_message[0]);
+		parse_response(uart_read_message[0]);
+//		parse_cmd_from_comms(uart_read_message[0]);
 	}
 	else if(RXSWFG1){
 		UART_read_response(1,&RXSWFG1);
 		UART_write_msg(1,uart_read_message[1]);
-		parse_cmd_from_comms(uart_read_message[1]);
+		parse_response(uart_read_message[1]);
+//		parse_cmd_from_comms(uart_read_message[1]);
 	}
 	else if(RXSWFG2){
 		UART_read_response(2,&RXSWFG2);
 		UART_write_msg(2,uart_read_message[2]);
-		parse_cmd_from_comms(uart_read_message[2]);
+		parse_response(uart_read_message[2]);
+//		parse_cmd_from_comms(uart_read_message[2]);
 	}
 	else if(RXSWFG3){
 		UART_read_response(3,&RXSWFG3);
 		UART_write_msg(3,uart_read_message[3]);
-		parse_cmd_from_comms(uart_read_message[3]);
+		parse_response(uart_read_message[3]);
+//		parse_cmd_from_comms(uart_read_message[3]);
 	}
 	else {
 		__no_operation();
