@@ -76,6 +76,7 @@
 #include <msp430.h>
 #include "driverlib.h" //added for blink LED
 #include "habip.h"
+#include "string.h"
 
 // UART UD Variables
 extern volatile char uart_read_buffer[MSG_LEN];
@@ -85,10 +86,10 @@ extern volatile char uart_index;
 
 // SPI UD Variables
 extern volatile char TXDATA;
-extern volatile char spi_read_buffer[BUFF_LEN];
-extern volatile char spi_read_message[MSG_LEN];
-extern volatile char spi_send_message[MSG_LEN];
-extern volatile char spi_send_buffer[BUFF_LEN];
+extern char spi_read_buffer[BUFF_LEN];
+extern char spi_read_message[MSG_LEN];
+extern char spi_send_message[MSG_LEN];
+extern char spi_send_buffer[BUFF_LEN];
 extern volatile int msg_return;	//when to respond to SPI master
 extern volatile int spi_fsm_state;
 extern volatile int spi_index;
@@ -98,6 +99,25 @@ extern volatile int spi_read_index;
 extern volatile int spi_write_index;
 extern volatile int spi_readDoneFG;
 
+char* sensor_responses[DAQCS_SENSOR_CNT] = {"{B4:TB0:1110}",
+							"{B4:P0:1111}",
+							"{B4:PB:1112}",
+							"{B4:V:1113}",
+							"{B4:C:1114}",
+							"{B4:XGY:1115}",
+							"{B4:XAC:1116}",
+							"{B4:YGY:1117}",
+							"{B4:YAC:1118}",
+							"{B4:ZGY:1119}",
+							"{B4:ZAC:1120}",
+							"{B4:MS:1121}",
+							"{B4:MC:1122}",
+							"{B4:MV:1123}",
+							"{B4:MD:1124}",
+							"{B4:ME:1125}"
+
+};
+int count = 0;
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD;               // Stop Watchdog
@@ -115,13 +135,18 @@ int main(void)
     config_SPI_A0_Slave();
 
     UCA0TXBUF = 0x58;
+
 while(1){
     __bis_SR_register(LPM0_bits | GIE);
 
     __no_operation();
     __delay_cycles(200);
     if(spi_req_data == 1){
+    	strcpy(spi_send_message,sensor_responses[count++]);
     	spi_data_available = 1;
+    	if(count == DAQCS_SENSOR_CNT){
+    		count = 0;
+    	}
     }
 //    __bis_SR_register(LPM0_bits | GIE);
 // Begin Main Code
