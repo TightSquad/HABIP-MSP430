@@ -76,6 +76,7 @@
 #include <msp430.h>
 #include "driverlib.h" //added for blink LED
 #include "habip.h"
+#include <string.h>
 /*
 // UD Functions
 
@@ -119,15 +120,15 @@ const int EOT=4; // End of Transmission ASCII Character
 extern volatile char uart_read_buffer[MSG_LEN];
 extern volatile char uart_read_message[MSG_LEN];
 extern volatile char uart_index;
-extern volatile int uart_readDoneFG ;
+//extern volatile int uart_readDoneFG ;
 
 // SPI UD Variables
 //volatile char RXData = '\0';
 //volatile char TXData = '\0';
-extern volatile char spi_read_buffer[MSG_LEN];
-extern volatile char spi_read_message[MSG_LEN];
-extern volatile char spi_send_message[MSG_LEN];
-extern volatile char spi_send_buffer[MSG_LEN];
+extern char spi_read_buffer[MSG_LEN];
+extern char spi_read_message[MSG_LEN];
+extern char spi_send_message[MSG_LEN];
+extern char spi_send_buffer[MSG_LEN];
 extern volatile char spi_index;
 extern volatile char msg_index;
 extern volatile char spi_read_index;
@@ -135,6 +136,21 @@ extern volatile int spi_read_enable;
 extern volatile int spi_readDoneFG;
 extern volatile char TXDATA;
 extern volatile char RXDATA;
+
+//temp?
+extern char response_buffer_b0[PI_HAT_SENSOR_CNT][MSG_LEN];
+extern char response_buffer_b1[PI_HAT_SENSOR_CNT][MSG_LEN];
+extern char response_buffer_b2[PI_HAT_SENSOR_CNT][MSG_LEN];
+extern char response_buffer_b3[PI_HAT_SENSOR_CNT][MSG_LEN];
+extern char response_buffer[4][PI_HAT_SENSOR_CNT][MSG_LEN];
+extern char response_buffer_b4[DAQCS_SENSOR_CNT][MSG_LEN];
+
+extern char response_status_b0[PI_HAT_SENSOR_CNT];
+extern char response_status_b1[PI_HAT_SENSOR_CNT];
+extern char response_status_b2[PI_HAT_SENSOR_CNT];
+extern char response_status_b3[PI_HAT_SENSOR_CNT];
+extern char response_status[4][PI_HAT_SENSOR_CNT];
+extern char response_status_b4[DAQCS_SENSOR_CNT];
 
 
 
@@ -158,65 +174,22 @@ int main(void)
     config_SPI_B0_Master();
 
 // Begin Main Code
-    char data_response_commands[4][MSG_LEN]={{}};
+//    char data_response_commands[4][MSG_LEN]={{}};
     volatile int count = 0;
     SPI_command_host_to_slave("{00:B4:ZGY}",&spi_readDoneFG,&TXDATA);
-    int index = 0;
-    for(index = 0;index < MSG_LEN;index++){
-    	data_response_commands[count][index] = spi_read_message[index];
-    	if(spi_read_message[index] == '\0'){
-    		break;
-    	}
-    }
-    count++;
-//    data_response_commands[count++] = spi_read_message;
+    parse_response(spi_read_message);
+//    strcpy(data_response_commands[count++],spi_read_message);
+
     SPI_command_host_to_slave("{00:B4:ZGY}",&spi_readDoneFG,&TXDATA);
-    for(index = 0;index < MSG_LEN;index++){
-    	data_response_commands[count][index] = spi_read_message[index];
-    	if(spi_read_message[index] == '\0'){
-    		break;
-    	}
-    }
-    count++;
-//    data_response_commands[count++] = spi_read_message;
+    parse_response(spi_read_message);
+//    strcpy(data_response_commands[count++],spi_read_message);
+
+//    strcpy(response_buffer_b4[DQ_TB0],data_response_commands[0]);
+//    strcpy(response_buffer_b4[DQ_P0],data_response_commands[1]);
 // End Main Code
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
-#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
-#pragma vector=EUSCI_A3_VECTOR
-__interrupt void USCI_A3_ISR(void)
-#elif defined(__GNUC__)
-void __attribute__ ((interrupt(EUSCI_A3_VECTOR))) USCI_A3_ISR (void)
-#else
-#error Compiler not supported!
-#endif
-{
-    switch(__even_in_range(UCA3IV, USCI_UART_UCTXCPTIFG))
-    {
-        case USCI_NONE: break;
-        case USCI_UART_UCRXIFG:
-            uart_read_buffer[uart_index] = UCA3RXBUF;
-//            UCA3TXBUF = uart_read_buffer[uart_index];
-            if((uart_read_buffer[uart_index] == END_CHAR)||(uart_index == MSG_LEN-1)) {
-            	unsigned int i;
-            	for(i = 0; i < uart_index; i++) {
-            		uart_read_message[i]=uart_read_buffer[i];
-            	}
-            	uart_read_message[uart_index]='\0';
-            	uart_index = 0;
-            	uart_readDoneFG = 1;
-            } else {
-            	uart_index++;
-            }
-            __no_operation();
-            break;
-        case USCI_UART_UCTXIFG: break;
-        case USCI_UART_UCSTTIFG: break;
-        case USCI_UART_UCTXCPTIFG: break;
-        default: break;
-    }
-}
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=EUSCI_B0_VECTOR
 __interrupt void USCI_B0_ISR(void)
@@ -235,6 +208,10 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
         		if(spi_read_buffer[spi_index] == 0x7B){
 					spi_read_enable = 1;
 				}
+//        		else{
+//					while(!(UCB0IFG&UCTXIFG));
+//					UCB0TXBUF = 'L';
+//        		}
         	}
         	if(spi_read_enable == 1){
         		spi_read_message[spi_read_index] = spi_read_buffer[spi_index];
@@ -244,10 +221,14 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
         			spi_readDoneFG = 1;
         			spi_read_enable = 0;
         			spi_read_index = 0;
+//					while(!(UCB0IFG&UCTXIFG));
+//					UCB0TXBUF = 'D';
         			UCB0IE &= ~UCRXIE;
         		}
         		else{
         			spi_read_index++;
+//					while(!(UCB0IFG&UCTXIFG));
+//					UCB0TXBUF = 'C';
         		}
         	}
         	spi_index++;
@@ -262,45 +243,6 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
             UCB0TXBUF = TXDATA;             // Transmit characters
             spi_send_buffer[spi_index] = TXDATA;
             UCB0IE &= ~UCTXIE;
-            break;
-        default: break;
-    }
-}
-#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
-#pragma vector=EUSCI_B1_VECTOR
-__interrupt void USCI_B1_ISR(void)
-#elif defined(__GNUC__)
-void __attribute__ ((interrupt(EUSCI_B1_VECTOR))) USCI_B1_ISR (void)
-#else
-#error Compiler not supported!
-#endif
-{
-    switch(__even_in_range(UCB1IV, USCI_SPI_UCTXIFG))
-    {
-        case USCI_NONE: break;
-        case USCI_SPI_UCRXIFG:
-//            RXData = UCB1RXBUF;
-            UCB1IFG &= ~UCRXIFG;
-//            __bic_SR_register_on_exit(LPM0_bits); // Wake up to setup next TX
-//            break;
-            spi_read_buffer[spi_index] = UCB1RXBUF;
-//            UCB1TXBUF = spi_read_buffer[spi_index];
-			if((spi_read_buffer[spi_index] == END_CHAR)||(spi_index == MSG_LEN-1)) {
-				unsigned int i;
-				for(i = 0; i < spi_index; i++) {
-					spi_read_message[i]=spi_read_buffer[i];
-				}
-				spi_read_message[spi_index]='\0';
-				spi_index = 0;
-				spi_readDoneFG = 1;
-			} else {
-				spi_index++;
-			}
-			__no_operation();
-			break;
-        case USCI_SPI_UCTXIFG:
-//            UCB1TXBUF = TXData;                   // Transmit characters
-//            UCB1IE &= ~UCTXIE;
             break;
         default: break;
     }

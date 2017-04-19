@@ -8,12 +8,13 @@
 #include <msp430.h>
 #include "common.h"
 #include "spi.h"
+#include "string.h"
 
 // SPI UD Variables
-volatile char spi_read_buffer[MSG_LEN]={};
-volatile char spi_read_message[MSG_LEN]={};
-volatile char spi_send_message[MSG_LEN]={};
-volatile char spi_send_buffer[MSG_LEN]={};
+char spi_read_buffer[BUFF_LEN]={};
+char spi_read_message[MSG_LEN]={};
+char spi_send_message[MSG_LEN]={};
+char spi_send_buffer[BUFF_LEN]={};
 volatile int msg_return = 0;	//when to respond to SPI master
 volatile int spi_fsm_state = LISTENING_FOR_COMMAND;
 volatile int spi_index = 0;
@@ -62,7 +63,7 @@ void config_SPI_B0_Master(void){
      * config_XT1_ACLK_32768Hz_DCO_1MHz();
      */
 // Configure USCI_B0 for SPI operation
-	spi_send_message[MSG_LEN]="{00:B4:ZGY}"; //temp
+	strcpy(spi_send_message,"{00:B4:ZGY}"); //temp
     UCB0CTLW0 = UCSWRST;                    // **Put state machine in reset**
     UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB; // 3-pin, 8-bit SPI master
                                             // Clock polarity high, MSB
@@ -80,7 +81,7 @@ void config_SPI_B1_Slave(void){
      * config_XT1_ACLK_32768Hz_DCO_1MHz();
      */
 // Configure USCI_B1 for SPI operation
-	spi_send_message[MSG_LEN]="{B4:ZGY:1490}"; //temp
+	strcpy(spi_send_message,"{B4:ZGY:1490}"); //temp
    UCB1CTLW0 = UCSWRST;                    // **Put state machine in reset**
    UCB1CTLW0 |= UCSYNC | UCCKPH | UCMSB | UCMODE_2;   // 4-pin, 8-bit SPI slave
                                            // Clock polarity high, MSB, SS active low
@@ -96,7 +97,7 @@ void config_SPI_A0_Slave(void){
 	 * config_XT1_ACLK_32768Hz_DCO_1MHz();
 	 */
 // Configure USCI_A0 for SPI operation
-	spi_send_message[MSG_LEN]="{B4:ZGY:1490}"; //temp
+	strcpy(spi_send_message,"{B4:ZGY:1490}"); //temp
    UCA0CTLW0 = UCSWRST;                    // **Put state machine in reset**
    UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_0;   // 3-pin, 8-bit SPI slave
                                            // Clock polarity high, MSB
@@ -140,14 +141,15 @@ void SPI_command_host_to_slave(char* message,volatile int* read_done,volatile ch
         if(dummy_values == 0){
         	if(*TXDATA == 0x7D){
         		dummy_values = 1;
+        		*TXDATA = 0x58;
         	}
         	else{
         		*TXDATA = message[++msg_index];                           // Increment transmit data
         	}
         }
-        if (dummy_values == 1){
-        	*TXDATA = 0x58;
-        }
+//        if (dummy_values == 1){
+//        	*TXDATA = 0x58;
+//        }
     }
     *read_done = 0;
 }

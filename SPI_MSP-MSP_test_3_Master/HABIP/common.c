@@ -7,6 +7,7 @@
 // #include <common.h>
 #include <msp430.h>
 #include "driverlib.h" //added for blink LED
+#include "common.h"
 
 void activate_GPIO_config(void){
   /*Scope: Run after configured GPIO to activate the config*/
