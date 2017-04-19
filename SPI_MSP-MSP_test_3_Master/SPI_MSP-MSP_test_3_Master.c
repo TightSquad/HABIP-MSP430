@@ -125,10 +125,10 @@ extern volatile char uart_index;
 // SPI UD Variables
 //volatile char RXData = '\0';
 //volatile char TXData = '\0';
-extern char spi_read_buffer[MSG_LEN];
+extern char spi_read_buffer[BUFF_LEN];
 extern char spi_read_message[MSG_LEN];
 extern char spi_send_message[MSG_LEN];
-extern char spi_send_buffer[MSG_LEN];
+extern char spi_send_buffer[BUFF_LEN];
 extern volatile char spi_index;
 extern volatile char msg_index;
 extern volatile char spi_read_index;
