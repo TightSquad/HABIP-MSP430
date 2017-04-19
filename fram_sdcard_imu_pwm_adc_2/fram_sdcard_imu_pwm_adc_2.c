@@ -36,8 +36,11 @@ Calendar currTime;
 unsigned char count = 0;
 unsigned long data;
 
-#pragma PERSISTENT(FRAM_write)
-signed int FRAM_write[WRITE_SIZE][COL_SIZE] = {0};
+//#pragma PERSISTENT(FRAM_write)
+//signed short int FRAM_write[WRITE_SIZE][COL_SIZE] = {0};
+
+#pragma PERSISTENT(fram_data)
+unsigned short fram_data[0x10000] = {0};
 
 void Init_GPIO(void);
 void Init_Clock(void);
@@ -90,13 +93,13 @@ int main(void) {
 	char curr_ms[8];
 	int curr_sec;
 	//uint32_t currMS;
-	int z_gyro_data;
+	signed short z_gyro_data;
 	char z_gyro_char[8];
 	char adc_char[8];
 	int current_adc_val;
 	long rtc_ms;
 
-	int row = 0;
+	long row = 0;
 	//int col = 0;
 
 	//start the RTC
@@ -112,7 +115,10 @@ int main(void) {
 
 	Init_Clock();
 
-	while (log_num < 6000) {
+//	unsigned long int fram2_start_adr = 0x00010000;
+	motorSpeed(100);
+
+	while (log_num < 8000) {
 		//initialze the SPI
 		setup_IMU_SPI();
 
@@ -120,11 +126,13 @@ int main(void) {
 		z_gyro_data = read_IMU_SPI(ZGYRO);
 
 		//store in an array to plot later
-		FRAM_write[row][2] = z_gyro_data;
+		__data20_write_short((unsigned long int)fram_data + row + 4, z_gyro_data);
+		//FRAM_write[row][2] = z_gyro_data;
 
 		//capture current ADC value
 		current_adc_val = readADC();
-		FRAM_write[row][3] = current_adc_val;
+		__data20_write_short((unsigned long int)fram_data + row + 6, current_adc_val);
+		//FRAM_write[row][3] = current_adc_val;
 
 		//speed up clock to 8MHz
 		Init_Clock();
@@ -132,37 +140,17 @@ int main(void) {
 		//get current time in seconds from RTC_C
 		currTime = RTC_C_getCalendarTime(RTC_C_BASE);
 		curr_sec = currTime.Seconds;
-		FRAM_write[row][0] = curr_sec;
-
+		__data20_write_short((unsigned long int)fram_data + row, curr_sec);
+		//FRAM_write[row][0] = curr_sec;
 
 		//grab RTC counter
 		rtc_ms =  RTCPS;
 		//convert RTC counter to ms
 		rtc_ms = (int)(((long)rtc_ms * 1000l)/32768l);
-		FRAM_write[row][1] = rtc_ms;
+		__data20_write_short((unsigned long int)fram_data + row + 2, rtc_ms);
+		//FRAM_write[row][1] = rtc_ms;
 
-		// if CW rotation is detected, make a PWM that is linearly proportional to the IMU data
-		if(z_gyro_data >= 30){
-			motorSpeed(z_gyro_data);
-			//spin the motor in CW direction
-			motorCW();
-			motorON();
-		}
-
-		// if CCW motion is detected, make a PWM that is linearly proportional to the IMU data
-		else if(z_gyro_data < -30){
-			// invert the magnitude, so a positive value can be sent to PWM
-			z_gyro_data = z_gyro_data * -1;
-			motorSpeed(z_gyro_data);
-
-			// spin motor CCW
-			motorCCW();
-			motorON();
-		}
-
-		else{
-			motorOFF();
-		}
+		//motorSpeed(100);
 
 		if (blink_count == 100){
 			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
@@ -171,7 +159,7 @@ int main(void) {
 		}
 
 		log_num++;
-		row++;
+		row = row + 8;
 		blink_count++;
 
 		__delay_cycles(32000);
@@ -181,13 +169,18 @@ int main(void) {
 	SDFindOpenNewFile();
 	row = 0;
 	blink_count = 0;
+	log_num = 0;
+//	fram2_start_adr = 0x00010000;
 
-	for(row = 0; row < 6000; row++){
+	for(log_num = 0; log_num < 8000; log_num++){
 		//convert int to char string
-		itoa(FRAM_write[row][0], time_sec, 10);
-		itoa(FRAM_write[row][1], curr_ms, 10);
-		itoa(FRAM_write[row][2], z_gyro_char, 10);
-		itoa(FRAM_write[row][3], adc_char, 10);
+		//__data20_read_short(fram2_start_adr);
+		itoa(__data20_read_short((unsigned long int)fram_data + row), time_sec, 10);
+		itoa(__data20_read_short((unsigned long int)fram_data+ row + 2), curr_ms, 10);
+		itoa(__data20_read_short((unsigned long int)fram_data+ row + 4), z_gyro_char, 10);
+		itoa(__data20_read_short((unsigned long int)fram_data+ row + 6), adc_char, 10);
+
+		row = row + 8;
 
 		//write all data to a single line in the currently open txt file
 		writeDataSameLine_4(time_sec, curr_ms, z_gyro_char, adc_char);

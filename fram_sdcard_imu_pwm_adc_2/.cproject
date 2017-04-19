@@ -24,7 +24,7 @@
 								<listOptionValue builtIn="false" value="LINKER_COMMAND_FILE=lnk_msp430fr5994.cmd"/>
 								<listOptionValue builtIn="false" value="RUNTIME_SUPPORT_LIBRARY=libc.a"/>
 								<listOptionValue builtIn="false" value="OUTPUT_TYPE=executable"/>
-								<listOptionValue builtIn="false" value="MPU_OPTION__LINKER=enabled:true;lock:false;NMI:false;mode:0;"/>
+								<listOptionValue builtIn="false" value="MPU_OPTION__LINKER=enabled:true;lock:false;NMI:false;mode:1;"/>
 								<listOptionValue builtIn="false" value="IPE_OPTION__LINKER=enabled:false;"/>
 							</option>
 							<option id="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION.421046531" name="Compiler version" superClass="com.ti.ccstudio.buildDefinitions.core.OPT_CODEGEN_VERSION" value="15.12.1.LTS" valueType="string"/>
@@ -34,6 +34,13 @@
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_15.12.compilerID.DEFINE.2025361043" name="Pre-define NAME (--define, -D)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_15.12.compilerID.DEFINE" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__MSP430FR5994__"/>
 									<listOptionValue builtIn="false" value="_MPU_ENABLE"/>
+									<listOptionValue builtIn="false" value="_MPU_MANUAL"/>
+									<listOptionValue builtIn="false" value="_MPU_SEGB1=0x10000"/>
+									<listOptionValue builtIn="false" value="_MPU_SEGB2=0x10000"/>
+									<listOptionValue builtIn="false" value="_MPU_SAM1=13"/>
+									<listOptionValue builtIn="false" value="_MPU_SAM2=9"/>
+									<listOptionValue builtIn="false" value="_MPU_SAM3=11"/>
+									<listOptionValue builtIn="false" value="_MPU_SAM0=9"/>
 								</option>
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_15.12.compilerID.DATA_MODEL.1578189582" name="Specify the data memory model. (--data_model)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_15.12.compilerID.DATA_MODEL" value="com.ti.ccstudio.buildDefinitions.MSP430_15.12.compilerID.DATA_MODEL.large" valueType="enumerated"/>
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_15.12.compilerID.ADVICE__HW_CONFIG.869519549" name="Check hardware configuration settings for device. (--advice:hw_config)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_15.12.compilerID.ADVICE__HW_CONFIG" value="all" valueType="string"/>
@@ -90,6 +97,13 @@
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_15.12.linkerID.DIAG_WRAP.1613516781" name="Wrap diagnostic messages (--diag_wrap)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_15.12.linkerID.DIAG_WRAP" value="com.ti.ccstudio.buildDefinitions.MSP430_15.12.linkerID.DIAG_WRAP.off" valueType="enumerated"/>
 								<option id="com.ti.ccstudio.buildDefinitions.MSP430_15.12.linkerID.DEFINE.401218185" name="Pre-define preprocessor macro _name_ to _value_ (--define)" superClass="com.ti.ccstudio.buildDefinitions.MSP430_15.12.linkerID.DEFINE" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="_MPU_ENABLE"/>
+									<listOptionValue builtIn="false" value="_MPU_MANUAL"/>
+									<listOptionValue builtIn="false" value="_MPU_SEGB1=0x10000"/>
+									<listOptionValue builtIn="false" value="_MPU_SEGB2=0x10000"/>
+									<listOptionValue builtIn="false" value="_MPU_SAM1=13"/>
+									<listOptionValue builtIn="false" value="_MPU_SAM2=9"/>
+									<listOptionValue builtIn="false" value="_MPU_SAM3=11"/>
+									<listOptionValue builtIn="false" value="_MPU_SAM0=9"/>
 								</option>
 								<inputType id="com.ti.ccstudio.buildDefinitions.MSP430_15.12.exeLinker.inputType__CMD_SRCS.1156303590" name="Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.MSP430_15.12.exeLinker.inputType__CMD_SRCS"/>
 								<inputType id="com.ti.ccstudio.buildDefinitions.MSP430_15.12.exeLinker.inputType__CMD2_SRCS.758779834" name="Linker Command Files" superClass="com.ti.ccstudio.buildDefinitions.MSP430_15.12.exeLinker.inputType__CMD2_SRCS"/>

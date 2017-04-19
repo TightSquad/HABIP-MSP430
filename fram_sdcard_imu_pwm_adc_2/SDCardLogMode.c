@@ -632,7 +632,8 @@ void storeTimeStampSDCard()
 //	FRESULT rc;
 
     // Increment log file number
-    numLogFiles++;
+	//__data20_write_char((unsigned long int)myData1 + i, __data20_read_char((unsigned long int)myData2 + i) + 1);
+    //numLogFiles++;
     LogFileNum++;
 
     //Configure SDCard CS pin

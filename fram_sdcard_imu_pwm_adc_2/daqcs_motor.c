@@ -51,7 +51,7 @@ void motorON(void){
 }
 
 void motorSpeed(int duty_cycle){
-	TA1CCR1 = 10*duty_cycle;
+	TA1CCR1 = duty_cycle;
 }
 
 void motorOFF(void){

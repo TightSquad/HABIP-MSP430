@@ -27,8 +27,8 @@ void setup_IMU_SPI(void){
 
     // XT1 Setup
     CSCTL0_H = CSKEY_H;                     // Unlock CS registers
-    CSCTL1 = DCOFSEL_0;                     // Set DCO to 1MHz
-    CSCTL1 &= ~DCORSEL;
+    //CSCTL1 = DCOFSEL_0;                     // Set DCO to 1MHz
+    //CSCTL1 &= ~DCORSEL;
     CSCTL2 = SELA__LFXTCLK | SELS__DCOCLK | SELM__DCOCLK;
     CSCTL3 = DIVA__16 | DIVA__16 | DIVA__16;   // Set all dividers
     CSCTL4 &= ~LFXTOFF;
@@ -46,7 +46,7 @@ void setup_IMU_SPI(void){
                                             // Clock polarity high, MSB
     //UCB1CTLW0 |= UCSSEL__ACLK;              // ACLK
     UCA1CTLW0 |= UCSSEL_2;              	// SMCLK
-    UCA1BRW = 0x04;                         // /4
+    UCA1BRW = 0x20;                         // /4
     UCA1CTLW0 &= ~UCSWRST;                  // **Initialize USCI state machine**
     UCA1IE |= UCRXIE;                       // Enable USCI_A1 RX interrupt
 

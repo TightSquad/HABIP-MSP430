@@ -185,7 +185,8 @@ SECTIONS
 #ifndef __LARGE_DATA_MODEL__
     .text             : {} > FRAM           /* Code                              */
 #else
-    .text             : {} >> FRAM2 | FRAM  /* Code                              */
+    //.text             : {} >> FRAM2 | FRAM  /* Code                              */
+    .text             : {} >> FRAM
 #endif
 
     #ifdef __TI_COMPILER_VERSION
