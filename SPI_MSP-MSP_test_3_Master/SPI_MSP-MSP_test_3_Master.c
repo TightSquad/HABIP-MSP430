@@ -176,12 +176,14 @@ int main(void)
 // Begin Main Code
 //    char data_response_commands[4][MSG_LEN]={{}};
     volatile int count = 0;
-    SPI_command_host_to_slave("{00:B4:ZGY}",&spi_readDoneFG,&TXDATA);
-    parse_response(spi_read_message);
+    for(count = 0; count < DAQCS_SENSOR_CNT; count++){
+        SPI_command_host_to_slave("{00:B4:ZGY}",&spi_readDoneFG,&TXDATA);
+        parse_response(spi_read_message);
+    }
 //    strcpy(data_response_commands[count++],spi_read_message);
 
-    SPI_command_host_to_slave("{00:B4:ZGY}",&spi_readDoneFG,&TXDATA);
-    parse_response(spi_read_message);
+//    SPI_command_host_to_slave("{00:B4:ZGY}",&spi_readDoneFG,&TXDATA);
+//    parse_response(spi_read_message);
 //    strcpy(data_response_commands[count++],spi_read_message);
 
 //    strcpy(response_buffer_b4[DQ_TB0],data_response_commands[0]);
