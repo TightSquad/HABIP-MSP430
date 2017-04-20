@@ -30,8 +30,8 @@ volatile char TXDATA = '\0';
 void config_SPI_B0_Master_GPIO(void){
     // Configure SPI GPIO for Host MSP (MSP-MSP)
     // STE/SS & SIMO & SOMI
-    P1SEL0 &= ~(BIT6 | BIT7);
-    P1SEL1 |= (BIT6 | BIT7);
+    P1SEL0 &= ~(BIT3 | BIT6 | BIT7);
+    P1SEL1 |= (BIT3 | BIT6 | BIT7);
     // SCLK
     P2SEL0 &= ~(BIT2);
     P2SEL1 |= (BIT2);
@@ -65,7 +65,8 @@ void config_SPI_B0_Master(void){
 // Configure USCI_B0 for SPI operation
 	strcpy(spi_send_message,"{00:B4:ZGY}"); //temp
     UCB0CTLW0 = UCSWRST;                    // **Put state machine in reset**
-    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB; // 3-pin, 8-bit SPI master
+//    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB; // 3-pin, 8-bit SPI master
+    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM; // 4-pin, 8-bit SPI master
                                             // Clock polarity high, MSB
     UCB0CTLW0 |= UCSSEL__ACLK;              // ACLK
     UCB0BRW = 0x02;                         // /2
@@ -99,7 +100,8 @@ void config_SPI_A0_Slave(void){
 // Configure USCI_A0 for SPI operation
 	strcpy(spi_send_message,"{B4:ZGY:1490}"); //temp
    UCA0CTLW0 = UCSWRST;                    // **Put state machine in reset**
-   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_0;   // 3-pin, 8-bit SPI slave
+//   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_0;   // 3-pin, 8-bit SPI slave
+   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM; // 4-pin, 8-bit SPI slave
                                            // Clock polarity high, MSB
    UCA0BRW = 0x02;                         // /2
    UCA0MCTLW = 0;                          // No modulation

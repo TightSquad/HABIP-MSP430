@@ -234,7 +234,7 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
         		}
         	}
         	spi_index++;
-        	if(spi_index == MSG_LEN){
+        	if(spi_index == BUFF_LEN){
         		spi_index = 0;
         	}
             UCB0IFG &= ~UCRXIFG;
