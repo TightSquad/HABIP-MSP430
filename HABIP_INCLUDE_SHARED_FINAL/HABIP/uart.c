@@ -8,11 +8,20 @@
 #include <driverlib.h>
 #include "common.h"
 #include "uart.h"
+#include "command_interface.h"
 
 // UART UD Variables
-char uart_read_buffer[4][MSG_LEN]={{}};
+char uart_read_buffer[4][BUFF_LEN]={{}};
 char uart_read_message[4][MSG_LEN]={{}};
+char uart_read_message_buffer[4][PI_HAT_SENSOR_CNT][MSG_LEN]={{{}}};
+char uart_read_message_buffer_status[4][PI_HAT_SENSOR_CNT]={{AVAILABLE}};
+volatile int msg_buffer_index[4]={0};
+volatile int uart_index[4] = {0};
+volatile int uart_read_index[4] = {0};
+volatile int uart_status_index[4] = {0};
+volatile int uart_status[4] = {0};
 int uart_fsm_state[4] = {{LISTENING_FOR_RESPONSE}}; // TODO: Does this work for init?
+char uart_interrupt_style[4] = {BUFFER};
 volatile int RXSWFG0 = 0;
 volatile int RXSWFG1 = 0;
 volatile int RXSWFG2 = 0;
@@ -193,6 +202,7 @@ void UART_read_response(int brd_num, volatile int* RXSWFG){
 			index = 0;
 		}
 		*RXSWFG = 0;
+//		UART_write_msg(brd_num,"{ACK}");
 	}
 }
 
@@ -207,8 +217,8 @@ void UART_write_msg(int brd_num, char* message){
 			UCA0TXBUF = message[i];
 			i++;
 		}
-		while(!(UCA0IFG&UCTXIFG));
-		UCA0TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+//		while(!(UCA0IFG&UCTXIFG));
+//		UCA0TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
 		break;
 	case 1:
 		while(message[i] != '\0'){
@@ -216,8 +226,8 @@ void UART_write_msg(int brd_num, char* message){
 			UCA1TXBUF = message[i];
 			i++;
 		}
-		while(!(UCA1IFG&UCTXIFG));
-		UCA1TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+//		while(!(UCA1IFG&UCTXIFG));
+//		UCA1TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
 		break;
 	case 2:
 		while(message[i] != '\0'){
@@ -225,8 +235,8 @@ void UART_write_msg(int brd_num, char* message){
 			UCA2TXBUF = message[i];
 			i++;
 		}
-		while(!(UCA2IFG&UCTXIFG));
-		UCA2TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+//		while(!(UCA2IFG&UCTXIFG));
+//		UCA2TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
 		break;
 	case 3:
 		while(message[i] != '\0'){
@@ -234,83 +244,83 @@ void UART_write_msg(int brd_num, char* message){
 			UCA3TXBUF = message[i];
 			i++;
 		}
-		while(!(UCA3IFG&UCTXIFG));
-		UCA3TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
+//		while(!(UCA3IFG&UCTXIFG));
+//		UCA3TXBUF = END_CHAR; // TODO: future dev decide on passing in {XX} or just XX
 		break;
 	default: break;
 	}
 }
 
-void chris_init(void){
-    // LFXT Setup
-    //Set PJ.4 and PJ.5 as Primary Module Function Input.
-    /*
-
-     * Select Port J
-     * Set Pin 4, 5 to input Primary Module Function, LFXT.
-     */
-    GPIO_setAsPeripheralModuleFunctionInputPin(
-        GPIO_PORT_PJ,
-        GPIO_PIN4 + GPIO_PIN5,
-        GPIO_PRIMARY_MODULE_FUNCTION
-        );
-
-    //Set DCO frequency to 1 MHz
-    CS_setDCOFreq(CS_DCORSEL_0,CS_DCOFSEL_0);
-    //Set external clock frequency to 32.768 KHz
-    CS_setExternalClockSource(32768,0);
-    //Set ACLK=LFXT
-    CS_initClockSignal(CS_ACLK,CS_LFXTCLK_SELECT,CS_CLOCK_DIVIDER_1);
-    //Set SMCLK = DCO with frequency divider of 1
-    CS_initClockSignal(CS_SMCLK,CS_DCOCLK_SELECT,CS_CLOCK_DIVIDER_1);
-    //Set MCLK = DCO with frequency divider of 1
-    CS_initClockSignal(CS_MCLK,CS_DCOCLK_SELECT,CS_CLOCK_DIVIDER_1);
-    //Start XT1 with no time out
-    CS_turnOnLFXT(CS_LFXT_DRIVE_0);
-
-    // Configure UART pins
-    //Set P6.0 and P6.1 as Secondary Module Function Input.
-    /*
-
-     * Select Port 6
-     * Set Pin 0, 1 to input Secondary Module Function, (UCA3TXD/UCA3SIMO, UCA3RXD/UCA3SOMI).
-     */
-    GPIO_setAsPeripheralModuleFunctionInputPin(
-        GPIO_PORT_P6,
-        GPIO_PIN0 + GPIO_PIN1,
-        GPIO_PRIMARY_MODULE_FUNCTION
-        );
-
-    /*
-     * Disable the GPIO power-on default high-impedance mode to activate
-     * previously configured port settings
-     */
-    PMM_unlockLPM5();
-
-    // Configure UART
-    EUSCI_A_UART_initParam param = {0};
-    param.selectClockSource = EUSCI_A_UART_CLOCKSOURCE_ACLK;
-    param.clockPrescalar = 3;
-    param.firstModReg = 0;
-    param.secondModReg = 146;
-    param.parity = EUSCI_A_UART_NO_PARITY;
-    param.msborLsbFirst = EUSCI_A_UART_LSB_FIRST;
-    param.numberofStopBits = EUSCI_A_UART_ONE_STOP_BIT;
-    param.uartMode = EUSCI_A_UART_MODE;
-    param.overSampling = EUSCI_A_UART_LOW_FREQUENCY_BAUDRATE_GENERATION;
-
-    if(STATUS_FAIL == EUSCI_A_UART_init(EUSCI_A3_BASE, &param))
-    {
-        return;
-    }
-
-    EUSCI_A_UART_enable(EUSCI_A3_BASE);
-
-    EUSCI_A_UART_clearInterrupt(EUSCI_A3_BASE,
-                                EUSCI_A_UART_RECEIVE_INTERRUPT);
-
-    // Enable USCI_A3 RX interrupt
-    EUSCI_A_UART_enableInterrupt(EUSCI_A3_BASE,
-                                 EUSCI_A_UART_RECEIVE_INTERRUPT); // Enable interrupt
-
-}
+//void chris_init(void){
+//    // LFXT Setup
+//    //Set PJ.4 and PJ.5 as Primary Module Function Input.
+//    /*
+//
+//     * Select Port J
+//     * Set Pin 4, 5 to input Primary Module Function, LFXT.
+//     */
+//    GPIO_setAsPeripheralModuleFunctionInputPin(
+//        GPIO_PORT_PJ,
+//        GPIO_PIN4 + GPIO_PIN5,
+//        GPIO_PRIMARY_MODULE_FUNCTION
+//        );
+//
+//    //Set DCO frequency to 1 MHz
+//    CS_setDCOFreq(CS_DCORSEL_0,CS_DCOFSEL_0);
+//    //Set external clock frequency to 32.768 KHz
+//    CS_setExternalClockSource(32768,0);
+//    //Set ACLK=LFXT
+//    CS_initClockSignal(CS_ACLK,CS_LFXTCLK_SELECT,CS_CLOCK_DIVIDER_1);
+//    //Set SMCLK = DCO with frequency divider of 1
+//    CS_initClockSignal(CS_SMCLK,CS_DCOCLK_SELECT,CS_CLOCK_DIVIDER_1);
+//    //Set MCLK = DCO with frequency divider of 1
+//    CS_initClockSignal(CS_MCLK,CS_DCOCLK_SELECT,CS_CLOCK_DIVIDER_1);
+//    //Start XT1 with no time out
+//    CS_turnOnLFXT(CS_LFXT_DRIVE_0);
+//
+//    // Configure UART pins
+//    //Set P6.0 and P6.1 as Secondary Module Function Input.
+//    /*
+//
+//     * Select Port 6
+//     * Set Pin 0, 1 to input Secondary Module Function, (UCA3TXD/UCA3SIMO, UCA3RXD/UCA3SOMI).
+//     */
+//    GPIO_setAsPeripheralModuleFunctionInputPin(
+//        GPIO_PORT_P6,
+//        GPIO_PIN0 + GPIO_PIN1,
+//        GPIO_PRIMARY_MODULE_FUNCTION
+//        );
+//
+//    /*
+//     * Disable the GPIO power-on default high-impedance mode to activate
+//     * previously configured port settings
+//     */
+//    PMM_unlockLPM5();
+//
+//    // Configure UART
+//    EUSCI_A_UART_initParam param = {0};
+//    param.selectClockSource = EUSCI_A_UART_CLOCKSOURCE_ACLK;
+//    param.clockPrescalar = 3;
+//    param.firstModReg = 0;
+//    param.secondModReg = 146;
+//    param.parity = EUSCI_A_UART_NO_PARITY;
+//    param.msborLsbFirst = EUSCI_A_UART_LSB_FIRST;
+//    param.numberofStopBits = EUSCI_A_UART_ONE_STOP_BIT;
+//    param.uartMode = EUSCI_A_UART_MODE;
+//    param.overSampling = EUSCI_A_UART_LOW_FREQUENCY_BAUDRATE_GENERATION;
+//
+//    if(STATUS_FAIL == EUSCI_A_UART_init(EUSCI_A3_BASE, &param))
+//    {
+//        return;
+//    }
+//
+//    EUSCI_A_UART_enable(EUSCI_A3_BASE);
+//
+//    EUSCI_A_UART_clearInterrupt(EUSCI_A3_BASE,
+//                                EUSCI_A_UART_RECEIVE_INTERRUPT);
+//
+//    // Enable USCI_A3 RX interrupt
+//    EUSCI_A_UART_enableInterrupt(EUSCI_A3_BASE,
+//                                 EUSCI_A_UART_RECEIVE_INTERRUPT); // Enable interrupt
+//
+//}

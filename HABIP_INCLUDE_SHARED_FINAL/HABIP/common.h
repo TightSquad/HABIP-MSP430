@@ -18,5 +18,6 @@ void delay_LED(void);
 #define START_CHAR 0x7B
 #define END_CHAR 0x7D
 #define MSG_LEN 18 // Longest = 17 characters Plus 1 for '\0'
+#define BUFF_LEN 64
 
 #endif /* HABIP_COMMON_H_ */

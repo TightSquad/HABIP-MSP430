@@ -10,6 +10,15 @@
 
 #define LISTENING_FOR_RESPONSE 0x00
 #define CAPTURING_RESPONSE 0x01
+#define MSG_BUFFER_FULL 0x02
+
+// buffer status
+#define AVAILABLE 0x00
+#define VALID 0x01
+
+// Interrupt setup
+#define BUFFER 0x00
+#define NO_BUFFER 0x01
 
   // UART
 void config_UART_GPIO(int brd_num);

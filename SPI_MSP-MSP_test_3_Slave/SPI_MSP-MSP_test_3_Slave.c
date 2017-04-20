@@ -222,7 +222,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
         	}
         	UCA0TXBUF = TXDATA;
         	spi_send_buffer[spi_index-1] = TXDATA;
-        	if(spi_index == MSG_LEN){
+        	if(spi_index == BUFF_LEN){
         		spi_index = 0;
         	}
 			break;
