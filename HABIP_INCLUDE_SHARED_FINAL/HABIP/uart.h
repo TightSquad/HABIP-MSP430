@@ -11,6 +11,7 @@
 #define LISTENING_FOR_RESPONSE 0x00
 #define CAPTURING_RESPONSE 0x01
 #define MSG_BUFFER_FULL 0x02
+#define UART_FSM_STATE_CNT 3
 
 // buffer status
 #define AVAILABLE 0x00
@@ -26,5 +27,6 @@ void config_UART_9600_ACLK_32768Hz(int brd_num);
 void config_UART_9600_SMCLK_8MHz(int brd_num);
 void UART_write_msg(int brd_num, char* message);
 void UART_read_response(int brd_num, volatile int* RXSWFG);
+void UART_parse(int brd_num);
 
 #endif /* HABIP_UART_H_ */

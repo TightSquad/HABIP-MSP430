@@ -27,6 +27,20 @@ volatile int RXSWFG1 = 0;
 volatile int RXSWFG2 = 0;
 volatile int RXSWFG3 = 0;
 
+void UART_parse(int brd_num){
+	int i;
+	if(uart_status[brd_num]>0){
+		for (i=0;i<PI_HAT_SENSOR_CNT;i++){
+			if(uart_read_message_buffer_status[brd_num][i]==VALID){
+				parse_response(uart_read_message_buffer[brd_num][i]);
+				uart_read_message_buffer_status[brd_num][i] = AVAILABLE;
+				uart_read_message_buffer[brd_num][i][0] = '\0';
+				uart_status[brd_num]--;
+			}
+		}
+	}
+}
+
 void config_UART_GPIO(int brd_num){
 	switch(brd_num)
 	{

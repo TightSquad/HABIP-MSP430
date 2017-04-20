@@ -15,7 +15,7 @@
 #define CAPTURING_COMMAND 0x01
 #define OBTAINING_DATA 0x02
 #define SENDING_DATA 0x03
-
+#define SPI_FSM_STATE_CNT 4
 	// SPI
 void config_SPI_B0_Master_GPIO(void);
 void config_SPI_B0_Master(void);

@@ -73,7 +73,6 @@ void config_SPI_B0_Master(void){
     //UCB0MCTLW = 0;                          // No modulation
     UCB0CTLW0 &= ~UCSWRST;                  // **Initialize USCI state machine**
     UCB0IE |= UCRXIE;                       // Enable USCI_B0 RX interrupt
-    __bis_SR_register(GIE);
 }
 void config_SPI_B1_Slave(void){
     /*
@@ -89,7 +88,6 @@ void config_SPI_B1_Slave(void){
    UCB1BRW = 0x02;                         // /2
    UCB1CTLW0 &= ~UCSWRST;                  // **Initialize USCI state machine**
    UCB1IE |= UCRXIE;                       // Enable USCI_B1 RX interrupt
-   __bis_SR_register(GIE);
 }
 void config_SPI_A0_Slave(void){
 	/*
@@ -107,7 +105,6 @@ void config_SPI_A0_Slave(void){
    UCA0MCTLW = 0;                          // No modulation
    UCA0CTLW0 &= ~UCSWRST;                  // **Initialize USCI state machine**
    UCA0IE |= UCRXIE;                       // Enable USCI_A0 RX interrupt
-   __bis_SR_register(GIE);
 }
 void SPI_read_msg(void){
     int i;
@@ -137,7 +134,7 @@ void SPI_command_host_to_slave(char* message,volatile int* read_done,volatile ch
     while(*read_done == 0)
     {
     	UCB0IE |= UCTXIE;
-        __bis_SR_register(LPM0_bits | GIE); // Enter LPM0, enable interrupt
+        __bis_SR_register(LPM0_bits); // Enter LPM0, enable interrupt
         __no_operation();                   // Remain in LPM0
         __delay_cycles(2000);               // Delay before next transmission
         if(dummy_values == 0){
