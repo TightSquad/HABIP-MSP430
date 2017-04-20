@@ -127,10 +127,10 @@ void SPI_read_msg(void){
     Toggle_ON_OFF_DS4_LED(); // Optional
 }
 void SPI_command_host_to_slave(char* message,volatile int* read_done,volatile char* TXDATA){
-	UCB0IE |= UCRXIE;
 	int msg_index = 0;
+    int dummy_values = 0;
+    UCB0IE |= UCRXIE;
     *TXDATA = message[msg_index];
-    volatile int dummy_values = 0;
     while(*read_done == 0)
     {
     	UCB0IE |= UCTXIE;
@@ -146,9 +146,9 @@ void SPI_command_host_to_slave(char* message,volatile int* read_done,volatile ch
         		*TXDATA = message[++msg_index];                           // Increment transmit data
         	}
         }
-//        if (dummy_values == 1){
-//        	*TXDATA = 0x58;
-//        }
+        if (dummy_values == 1){
+        	*TXDATA = 0x58;
+        }
     }
     *read_done = 0;
 }

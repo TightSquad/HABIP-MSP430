@@ -173,12 +173,18 @@ int main(void)
 // Configure SPI
     config_SPI_B0_Master();
 
+    __no_operation();
+    __bis_SR_register(GIE);
+
 // Begin Main Code
 //    char data_response_commands[4][MSG_LEN]={{}};
     volatile int count = 0;
-    for(count = 0; count < DAQCS_SENSOR_CNT; count++){
-        SPI_command_host_to_slave("{00:B4:ZGY}",&spi_readDoneFG,&TXDATA);
-        parse_response(spi_read_message);
+    while(1){
+		for(count = 0; count < DAQCS_SENSOR_CNT; count++){
+			SPI_command_host_to_slave("{00:B4:ZGY}",&spi_readDoneFG,&TXDATA);
+			parse_response(spi_read_message);
+		}
+		__no_operation();
     }
 //    strcpy(data_response_commands[count++],spi_read_message);
 
