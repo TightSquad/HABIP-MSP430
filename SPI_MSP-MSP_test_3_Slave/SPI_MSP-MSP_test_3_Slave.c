@@ -141,7 +141,7 @@ int main(void)
 	while(1){
 		__no_operation();
 		__bis_SR_register(LPM0_bits);
-		__no_operation();
+  		__no_operation();
 		__delay_cycles(200);
 		if(spi_req_data == 1){
 			strcpy(spi_send_message,sensor_responses[count++]);
@@ -169,7 +169,6 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_SPI_UCRXIFG:
-        	while (!(UCA0IFG&UCTXIFG));             // USCI_A0 TX buffer ready?
         	spi_read_buffer[spi_index] = UCA0RXBUF;
         	TXDATA = 0x58;
 //        	if(spi_fsm_state >= SPI_FSM_STATE_CNT){ // TODO: Design robust if statemachine ditches val. and in middle of msg
@@ -182,6 +181,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
 					spi_read_index = 0;
 				}
 				else{
+					TXDATA = 'L';
 					spi_index++;
 				}
         	}
@@ -193,8 +193,10 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
 					spi_req_data = 1;
 //					__bic_SR_register_on_exit(LPM0_bits | GIE);
 					__bic_SR_register_on_exit(LPM0_bits);
+					__no_operation();
 				}
 				else{
+					TXDATA = 'C';
 					spi_read_index++;
 					spi_index++;
 				}
@@ -208,6 +210,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
 					spi_write_index = 0;
 				}
 				else{
+					TXDATA = 'O';
 					spi_index++;
 				}
 			}
@@ -223,6 +226,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
         			spi_index++;
         		}
         	}
+        	while (!(UCA0IFG&UCTXIFG));             // USCI_A0 TX buffer ready?
         	UCA0TXBUF = TXDATA;
         	spi_send_buffer[spi_index-1] = TXDATA;
         	if(spi_index == BUFF_LEN){
