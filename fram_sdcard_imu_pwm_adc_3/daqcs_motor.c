@@ -13,7 +13,6 @@ void setupMotor(void){
     P4DIR |= BIT0 + BIT1;
 	//-------------------------------------------
 
-
 	//-------------------------------------------
     // Setup GPIO to generate PWM for motor speed and current
     // Set P1.2 and P1.3 to output
@@ -29,7 +28,7 @@ void setupMotor(void){
 
     // Set PWM Period in uSeconds
 //	TA1CCR0 |= 20000;
-    TA1CCR0 |= 2000000;
+    TA1CCR0 |= 0x4E20;
 
 	//Set output mode to reset/set
 	TA1CCTL1 |= OUTMOD_7;
@@ -40,7 +39,7 @@ void setupMotor(void){
 	TA1CCR2 |= 0;
 
 	//Start Timer1 and PWM
-	TA1CTL |= TASSEL_2 + MC_1;
+	TA1CTL |= ID_3 + TASSEL_2 + MC_1;
 	//-------------------------------------------
 
 }
@@ -51,6 +50,14 @@ void motorON(void){
 }
 
 void motorSpeed(int duty_cycle){
+	//some safety checks
+	if (duty_cycle < 2000){
+		duty_cycle = 2000;
+	}
+	if (duty_cycle > 18000){
+		duty_cycle = 18000;
+	}
+	//place the duty cycle in the Timer counter
 	TA1CCR1 = duty_cycle;
 }
 
@@ -70,6 +77,15 @@ void motorCW(void){
 	P4OUT |= BIT1;
 }
 
+void motorRampDown(void){
+	int curr_speed = TA1CCR1;
+
+	while (curr_speed > 2000){
+		curr_speed--;
+		motorSpeed(curr_speed);
+		__delay_cycles(1000);
+	}
+}
 
 
 void currentControl(int current_duty_cycle){

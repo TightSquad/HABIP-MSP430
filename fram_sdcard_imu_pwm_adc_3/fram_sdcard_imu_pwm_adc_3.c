@@ -100,7 +100,11 @@ int main(void) {
 	long rtc_ms;
 
 	long row = 0;
-	//int col = 0;
+
+	int motor_duty_cycle = 2000;
+	int second_counter = 0;
+	int period_counter = 0;
+	int high_speed = 0;
 
 	//start the RTC
 	Init_RTC();
@@ -115,8 +119,10 @@ int main(void) {
 
 	Init_Clock();
 
-//	unsigned long int fram2_start_adr = 0x00010000;
-	motorSpeed(1000);
+
+	//start motor PWM to 0
+	motorSpeed(motor_duty_cycle);
+	motorON();
 
 	while (log_num < 8000) {
 		//initialze the SPI
@@ -150,7 +156,25 @@ int main(void) {
 		__data20_write_short((unsigned long int)fram_data + row + 2, rtc_ms);
 		//FRAM_write[row][1] = rtc_ms;
 
-		//motorSpeed(100);
+		if (second_counter < curr_sec){
+			period_counter++;
+			if (period_counter == 5){
+				if (high_speed == 1){
+					motor_duty_cycle = 18000;
+					motorSpeed(motor_duty_cycle);
+					period_counter = 0;
+					high_speed = 0;
+				}
+				else {
+					motor_duty_cycle = 2000;
+					motorSpeed(motor_duty_cycle);
+					period_counter = 0;
+					high_speed = 1;
+				}
+			}
+			second_counter = curr_sec;
+		}
+
 
 		if (blink_count == 100){
 			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
@@ -164,6 +188,10 @@ int main(void) {
 
 		__delay_cycles(32000);
 	}
+
+	//slow down and stop the motor
+	motorRampDown();
+	motorOFF();
 
 	//Open txt file
 	SDFindOpenNewFile();
