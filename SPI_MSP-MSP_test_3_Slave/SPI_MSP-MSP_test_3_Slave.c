@@ -135,25 +135,24 @@ int main(void)
     config_SPI_A0_Slave();
 
     UCA0TXBUF = 0x58;
+    __bis_SR_register(GIE);
 
-while(1){
-    __bis_SR_register(LPM0_bits | GIE);
-
-    __no_operation();
-    __delay_cycles(200);
-    if(spi_req_data == 1){
-    	strcpy(spi_send_message,sensor_responses[count++]);
-    	spi_data_available = 1;
-    	if(count == DAQCS_SENSOR_CNT){
-    		count = 0;
-    	}
-    }
-//    __bis_SR_register(LPM0_bits | GIE);
 // Begin Main Code
-//    SPI_read_msg();
-//    SPI_write_msg("Hi from Slave");
+	while(1){
+		__no_operation();
+		__bis_SR_register(LPM0_bits);
+		__no_operation();
+		__delay_cycles(200);
+		if(spi_req_data == 1){
+			strcpy(spi_send_message,sensor_responses[count++]);
+			spi_data_available = 1;
+			if(count == DAQCS_SENSOR_CNT){
+				count = 0;
+			}
+		}
+	}
 // End Main Code
-}
+
 	while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
@@ -173,6 +172,9 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
         	while (!(UCA0IFG&UCTXIFG));             // USCI_A0 TX buffer ready?
         	spi_read_buffer[spi_index] = UCA0RXBUF;
         	TXDATA = 0x58;
+//        	if(spi_fsm_state >= SPI_FSM_STATE_CNT){ // TODO: Design robust if statemachine ditches val. and in middle of msg
+//        		spi_fsm_state = LISTENING_FOR_COMMAND;		// TODO: Add values shot back for state it is in.
+//        	}
 // LISTENING_FOR_COMMAND
         	if(spi_fsm_state == LISTENING_FOR_COMMAND){
 				if(spi_read_buffer[spi_index] == 0x7B){
@@ -189,7 +191,8 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
 				if(spi_read_message[spi_read_index] == 0x7D){
 					spi_fsm_state = OBTAINING_DATA;
 					spi_req_data = 1;
-					__bic_SR_register_on_exit(LPM0_bits | GIE);
+//					__bic_SR_register_on_exit(LPM0_bits | GIE);
+					__bic_SR_register_on_exit(LPM0_bits);
 				}
 				else{
 					spi_read_index++;
