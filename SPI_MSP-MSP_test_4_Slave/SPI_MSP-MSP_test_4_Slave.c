@@ -120,7 +120,7 @@ char* sensor_responses[DAQCS_SENSOR_CNT] = {"{B4:TB0:1110}",
 int count = 0;
 int main(void)
 {
-    WDTCTL = WDTPW | WDTHOLD;               // Stop Watchdog
+      WDTCTL = WDTPW | WDTHOLD;               // Stop Watchdog
 
 // Configure GPIO
     config_DS4_LED();
