@@ -91,7 +91,6 @@ extern volatile int spi_slv_data_available;
 extern volatile int spi_slv_write_index;
 extern volatile int spi_slv_read_index;
 extern volatile char spi_slv_tx_data;
-extern volatile int spi_slv_readDoneFG;
 
 char* sensor_responses[DAQCS_SENSOR_CNT] = {"{B4:TB0:1110}",
 							"{B4:P0:1111}",
@@ -192,7 +191,6 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
                     spi_slv_read_message[spi_slv_read_index++] = spi_slv_read_buffer[spi_slv_index];
                     if(spi_slv_read_buffer[spi_slv_index] == '}'){
                       spi_slv_fsm_state = PARSING_COMMAND;
-                      spi_slv_readDoneFG = 1;
                       spi_slv_read_message[spi_slv_read_index] = '\0';
                       TX_A0_SPI('D');
                       __bic_SR_register_on_exit(LPM0_bits);

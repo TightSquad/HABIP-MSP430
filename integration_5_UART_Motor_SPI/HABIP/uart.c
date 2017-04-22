@@ -21,12 +21,7 @@ volatile int uart_index[4] = {0};
 volatile int uart_read_index[4] = {0};
 volatile int uart_status_index[4] = {0};
 volatile int uart_status[4] = {0};
-int uart_fsm_state[4] = {{LISTENING_FOR_RESPONSE}}; // TODO: Does this work for init?
-char uart_interrupt_style[4] = {BUFFER};
-volatile int RXSWFG0 = 0;
-volatile int RXSWFG1 = 0;
-volatile int RXSWFG2 = 0;
-volatile int RXSWFG3 = 0;
+volatile int uart_fsm_state[4] = {{LISTENING_FOR_RESPONSE}};
 
 void UART_parse(int brd_num){
 	int i;
@@ -35,8 +30,7 @@ void UART_parse(int brd_num){
 			if(uart_read_message_buffer_status[brd_num][i]==VALID){
 				parse_response(uart_read_message_buffer[brd_num][i]);
 				uart_read_message_buffer_status[brd_num][i] = AVAILABLE;
-				uart_read_message_buffer[brd_num][i][0] = '\0'; // TODO: Strcpy in null string?
-//				strcpy(uart_read_message_buffer[brd_num][i],"\0");
+				uart_read_message_buffer[brd_num][i][0] = '\0';
 				uart_status[brd_num]--;
 				__no_operation();
 				if(uart_status[brd_num]==0){
@@ -225,57 +219,6 @@ void config_UART_9600_SMCLK_250KHz(int brd_num){
 	default: break;
 	}
 }
-void UART_read_response(int brd_num, volatile int* RXSWFG){
-	int index = 0;
-	int Done = 0;
-	int read_index = 0;
-	while(Done == 0){
-		while(*RXSWFG == 0) ;
-		switch(brd_num)
-		{
-		case 0:
-			uart_read_buffer[brd_num][index] = UCA0RXBUF;
-			break;
-		case 1:
-			uart_read_buffer[brd_num][index] = UCA1RXBUF;
-			break;
-		case 2:
-			uart_read_buffer[brd_num][index] = UCA2RXBUF;
-			break;
-		case 3:
-			uart_read_buffer[brd_num][index] = UCA3RXBUF;
-			break;
-		default: break;
-		}
-	// LISTENING_FOR_RESPONSE
-		if(uart_fsm_state[brd_num] == LISTENING_FOR_RESPONSE){
-			if(uart_read_buffer[brd_num][index] == 0x7B){
-				uart_fsm_state[brd_num] = CAPTURING_RESPONSE;
-				read_index = 0; // May cause overwriting in future
-			}
-			else{
-				index++;
-			}
-		}
-	// CAPTURING_RESPONSE
-		if(uart_fsm_state[brd_num] == CAPTURING_RESPONSE){
-			uart_read_message[brd_num][read_index] = uart_read_buffer[brd_num][index];
-			if(uart_read_message[brd_num][read_index] == 0x7D){
-				uart_fsm_state[brd_num] = LISTENING_FOR_RESPONSE;
-				Done = 1; // reset where?
-			} // TODO: some check for '\0' in uart_response so don't overwrite next array of chars.
-			else{
-				read_index++;
-				index++;
-			}
-		}
-		if(index == MSG_LEN){
-			index = 0;
-		}
-		*RXSWFG = 0;
-//		UART_write_msg(brd_num,"{ACK}");
-	}
-}
 
 void UART_write_msg(int brd_num, char* message){
 	int i;
@@ -321,77 +264,3 @@ void UART_write_msg(int brd_num, char* message){
 	default: break;
 	}
 }
-
-//void chris_init(void){
-//    // LFXT Setup
-//    //Set PJ.4 and PJ.5 as Primary Module Function Input.
-//    /*
-//
-//     * Select Port J
-//     * Set Pin 4, 5 to input Primary Module Function, LFXT.
-//     */
-//    GPIO_setAsPeripheralModuleFunctionInputPin(
-//        GPIO_PORT_PJ,
-//        GPIO_PIN4 + GPIO_PIN5,
-//        GPIO_PRIMARY_MODULE_FUNCTION
-//        );
-//
-//    //Set DCO frequency to 1 MHz
-//    CS_setDCOFreq(CS_DCORSEL_0,CS_DCOFSEL_0);
-//    //Set external clock frequency to 32.768 KHz
-//    CS_setExternalClockSource(32768,0);
-//    //Set ACLK=LFXT
-//    CS_initClockSignal(CS_ACLK,CS_LFXTCLK_SELECT,CS_CLOCK_DIVIDER_1);
-//    //Set SMCLK = DCO with frequency divider of 1
-//    CS_initClockSignal(CS_SMCLK,CS_DCOCLK_SELECT,CS_CLOCK_DIVIDER_1);
-//    //Set MCLK = DCO with frequency divider of 1
-//    CS_initClockSignal(CS_MCLK,CS_DCOCLK_SELECT,CS_CLOCK_DIVIDER_1);
-//    //Start XT1 with no time out
-//    CS_turnOnLFXT(CS_LFXT_DRIVE_0);
-//
-//    // Configure UART pins
-//    //Set P6.0 and P6.1 as Secondary Module Function Input.
-//    /*
-//
-//     * Select Port 6
-//     * Set Pin 0, 1 to input Secondary Module Function, (UCA3TXD/UCA3SIMO, UCA3RXD/UCA3SOMI).
-//     */
-//    GPIO_setAsPeripheralModuleFunctionInputPin(
-//        GPIO_PORT_P6,
-//        GPIO_PIN0 + GPIO_PIN1,
-//        GPIO_PRIMARY_MODULE_FUNCTION
-//        );
-//
-//    /*
-//     * Disable the GPIO power-on default high-impedance mode to activate
-//     * previously configured port settings
-//     */
-//    PMM_unlockLPM5();
-//
-//    // Configure UART
-//    EUSCI_A_UART_initParam param = {0};
-//    param.selectClockSource = EUSCI_A_UART_CLOCKSOURCE_ACLK;
-//    param.clockPrescalar = 3;
-//    param.firstModReg = 0;
-//    param.secondModReg = 146;
-//    param.parity = EUSCI_A_UART_NO_PARITY;
-//    param.msborLsbFirst = EUSCI_A_UART_LSB_FIRST;
-//    param.numberofStopBits = EUSCI_A_UART_ONE_STOP_BIT;
-//    param.uartMode = EUSCI_A_UART_MODE;
-//    param.overSampling = EUSCI_A_UART_LOW_FREQUENCY_BAUDRATE_GENERATION;
-//
-//    if(STATUS_FAIL == EUSCI_A_UART_init(EUSCI_A3_BASE, &param))
-//    {
-//        return;
-//    }
-//
-//    EUSCI_A_UART_enable(EUSCI_A3_BASE);
-//
-//    EUSCI_A_UART_clearInterrupt(EUSCI_A3_BASE,
-//                                EUSCI_A_UART_RECEIVE_INTERRUPT);
-//
-//    // Enable USCI_A3 RX interrupt
-//    EUSCI_A_UART_enableInterrupt(EUSCI_A3_BASE,
-//                                 EUSCI_A_UART_RECEIVE_INTERRUPT); // Enable interrupt
-//
-//}

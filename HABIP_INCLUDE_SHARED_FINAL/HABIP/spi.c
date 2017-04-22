@@ -20,8 +20,6 @@ volatile int spi_mst_index = 0;
 volatile int spi_mst_write_index = 0;
 volatile int spi_mst_read_index = 0;
 volatile char spi_mst_tx_data = '\0';
-volatile int spi_mst_read_enable = 0; // obsolete?
-volatile int spi_mst_currently_writing = 0; // obsolete?
 volatile int spi_mst_readDoneFG = 0;
 
 // Slave (slv)
@@ -36,10 +34,6 @@ volatile int spi_slv_data_available = 0;
 volatile int spi_slv_write_index = 0;
 volatile int spi_slv_read_index = 0;
 volatile char spi_slv_tx_data = '\0';
-volatile int spi_slv_readDoneFG = 0;
-
-
-
 
 void config_SPI_B0_Master_GPIO(void){
     // Configure SPI GPIO for Host MSP (MSP-MSP)

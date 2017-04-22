@@ -54,15 +54,14 @@
 // UART UD Variables
 extern char uart_read_buffer[4][MSG_LEN];
 extern char uart_read_message[4][MSG_LEN];
-extern int uart_fsm_state[4];
-extern volatile int RXSWFG0;
-extern volatile int RXSWFG1;
-extern volatile int RXSWFG2;
-extern volatile int RXSWFG3;
+extern volatile int uart_fsm_state[4];
 extern char uart_read_message_buffer[4][PI_HAT_SENSOR_CNT][MSG_LEN];
 extern char uart_read_message_buffer_status[4][PI_HAT_SENSOR_CNT];
-extern char uart_interrupt_style[4];
 extern volatile int msg_buffer_index[4];
+extern volatile int uart_index[4];
+extern volatile int uart_read_index[4];
+extern volatile int uart_status_index[4];
+extern volatile int uart_status[4];
 
 // SPI UD Variables
 // Master (mst)
@@ -75,8 +74,6 @@ extern volatile int spi_mst_index;
 extern volatile int spi_mst_write_index;
 extern volatile int spi_mst_read_index;
 extern volatile char spi_mst_tx_data;
-extern volatile int spi_mst_read_enable; // obsolete?
-extern volatile int spi_mst_currently_writing; // obsolete?
 extern volatile int spi_mst_readDoneFG;
 
 // Slave (slv)
@@ -91,14 +88,6 @@ extern volatile int spi_slv_data_available;
 extern volatile int spi_slv_write_index;
 extern volatile int spi_slv_read_index;
 extern volatile char spi_slv_tx_data;
-extern volatile int spi_slv_readDoneFG;
-
-extern volatile int uart_index[4];
-extern volatile int uart_read_index[4];
-extern volatile int uart_status_index[4];
-extern volatile int uart_status[4];
-
-volatile int count = 0;
 
 //*********************************************************************************************************//
 int main(void)
@@ -163,72 +152,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:
-        	P1OUT |= (BIT2);
-        	if(uart_interrupt_style[0] == NO_BUFFER){
-        		RXSWFG0 = 1;
-        	}
-        	else if (uart_interrupt_style[0] == BUFFER){
-        		uart_read_buffer[0][uart_index[0]] = UCA0RXBUF;
-        		if(uart_status[0] >= PI_HAT_SENSOR_CNT){
-        			uart_fsm_state[0] = MSG_BUFFER_FULL;
-        		}
-        	// MSG_BUFFER_FULL
-				if(uart_fsm_state[0] == MSG_BUFFER_FULL){
-					if(uart_status[0] < PI_HAT_SENSOR_CNT){
-						uart_fsm_state[0] = LISTENING_FOR_RESPONSE;
-					}
-					else {
-						while(!(UCA0IFG&UCTXIFG));
-							UCA0TXBUF = 'F'; // TODO: Chris OK with?
-							uart_index[0]++;
-					}
-				}
-			// LISTENING_FOR_RESPONSE
-				if(uart_fsm_state[0] == LISTENING_FOR_RESPONSE){
-					if(uart_read_buffer[0][uart_index[0]] == 0x7B){
-						// find open buffer slot and if none found, go to buffer full state
-						for(uart_status_index[0] = 0; uart_status_index[0] <PI_HAT_SENSOR_CNT; uart_status_index[0]++){
-							if(uart_read_message_buffer_status[0][uart_status_index[0]]==AVAILABLE){
-								uart_fsm_state[0] = CAPTURING_RESPONSE;
-								uart_read_index[0] = 0; // May cause overwriting in future
-								msg_buffer_index[0] = uart_status_index[0];
-								break;
-							}
-							else if(uart_status_index[0] == PI_HAT_SENSOR_CNT-1){
-								uart_fsm_state[0] = MSG_BUFFER_FULL;
-							}
-						}
-					}
-					else{
-						while(!(UCA0IFG&UCTXIFG));
-						UCA0TXBUF = 'L';
-						uart_index[0]++;
-					}
-				}
-			// CAPTURING_RESPONSE
-				if(uart_fsm_state[0] == CAPTURING_RESPONSE){
-					uart_read_message_buffer[0][msg_buffer_index[0]][uart_read_index[0]] = uart_read_buffer[0][uart_index[0]];
-					if(uart_read_message_buffer[0][msg_buffer_index[0]][uart_read_index[0]] == 0x7D){// TODO: If end of msg len stop reading in...
-						uart_fsm_state[0] = LISTENING_FOR_RESPONSE;
-						uart_read_message_buffer[0][msg_buffer_index[0]][uart_read_index[0]+1] = '\0';
-						uart_read_message_buffer_status[0][uart_status_index[0]]=VALID;
-						msg_buffer_index[0]++;
-						uart_status[0]++;
-						while(!(UCA0IFG&UCTXIFG));
-						UCA0TXBUF = 'D';
-					}
-					else{
-						uart_read_index[0]++;
-						uart_index[0]++;
-						while(!(UCA0IFG&UCTXIFG));
-						UCA0TXBUF = 'C';
-					}
-				}
-				if(uart_index[0] == MSG_LEN){
-					uart_index[0] = 0;
-				}
-        	}
-        	P1OUT &= ~(BIT2);
+        	UART_ISR(0);
 			break;
         case USCI_UART_UCTXIFG: break;
         case USCI_UART_UCSTTIFG: break;
@@ -249,70 +173,7 @@ void __attribute__ ((interrupt(EUSCI_A1_VECTOR))) USCI_A1_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:
-        	if(uart_interrupt_style[1] == NO_BUFFER){
-        		RXSWFG1 = 1;
-        	}
-        	else if (uart_interrupt_style[1] == BUFFER){
-        		uart_read_buffer[1][uart_index[1]] = UCA1RXBUF;
-        		if(uart_status[1] >= PI_HAT_SENSOR_CNT){
-        			uart_fsm_state[1] = MSG_BUFFER_FULL;
-        		}
-        	// MSG_BUFFER_FULL
-				if(uart_fsm_state[1] == MSG_BUFFER_FULL){
-					if(uart_status[1] < PI_HAT_SENSOR_CNT){
-						uart_fsm_state[1] = LISTENING_FOR_RESPONSE;
-					}
-					else {
-						while(!(UCA1IFG&UCTXIFG));
-							UCA1TXBUF = 'F'; // TODO: Chris OK with?
-							uart_index[1]++;
-					}
-				}
-			// LISTENING_FOR_RESPONSE
-				if(uart_fsm_state[1] == LISTENING_FOR_RESPONSE){
-					if(uart_read_buffer[1][uart_index[1]] == 0x7B){
-						// find open buffer slot and if none found, go to buffer full state
-						for(uart_status_index[1] = 0; uart_status_index[1] <PI_HAT_SENSOR_CNT; uart_status_index[1]++){
-							if(uart_read_message_buffer_status[1][uart_status_index[1]]==AVAILABLE){
-								uart_fsm_state[1] = CAPTURING_RESPONSE;
-								uart_read_index[1] = 0; // May cause overwriting in future
-								msg_buffer_index[1] = uart_status_index[1];
-								break;
-							}
-							else if(uart_status_index[1] == PI_HAT_SENSOR_CNT-1){
-								uart_fsm_state[1] = MSG_BUFFER_FULL;
-							}
-						}
-					}
-					else{
-						while(!(UCA1IFG&UCTXIFG));
-						UCA1TXBUF = 'L';
-						uart_index[1]++;
-					}
-				}
-			// CAPTURING_RESPONSE
-				if(uart_fsm_state[1] == CAPTURING_RESPONSE){
-					uart_read_message_buffer[1][msg_buffer_index[1]][uart_read_index[1]] = uart_read_buffer[1][uart_index[1]];
-					if(uart_read_message_buffer[1][msg_buffer_index[1]][uart_read_index[1]] == 0x7D){// TODO: If end of msg len stop reading in...
-						uart_fsm_state[1] = LISTENING_FOR_RESPONSE;
-						uart_read_message_buffer[1][msg_buffer_index[1]][uart_read_index[1]+1] = '\0';
-						uart_read_message_buffer_status[1][uart_status_index[1]]=VALID;
-						msg_buffer_index[1]++;
-						uart_status[1]++;
-						while(!(UCA1IFG&UCTXIFG));
-						UCA1TXBUF = 'D';
-					}
-					else{
-						uart_read_index[1]++;
-						uart_index[1]++;
-						while(!(UCA1IFG&UCTXIFG));
-						UCA1TXBUF = 'C';
-					}
-				}
-				if(uart_index[1] == MSG_LEN){
-					uart_index[1] = 0;
-				}
-        	}
+        	UART_ISR(1);
 			break;
         case USCI_UART_UCTXIFG: break;
         case USCI_UART_UCSTTIFG: break;
@@ -333,70 +194,7 @@ void __attribute__ ((interrupt(EUSCI_A2_VECTOR))) USCI_A2_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:
-        	if(uart_interrupt_style[2] == NO_BUFFER){
-        		RXSWFG2 = 1;
-        	}
-        	else if (uart_interrupt_style[2] == BUFFER){
-        		uart_read_buffer[2][uart_index[2]] = UCA2RXBUF;
-        		if(uart_status[2] >= PI_HAT_SENSOR_CNT){
-        			uart_fsm_state[2] = MSG_BUFFER_FULL;
-        		}
-        	// MSG_BUFFER_FULL
-				if(uart_fsm_state[2] == MSG_BUFFER_FULL){
-					if(uart_status[2] < PI_HAT_SENSOR_CNT){
-						uart_fsm_state[2] = LISTENING_FOR_RESPONSE;
-					}
-					else {
-						while(!(UCA2IFG&UCTXIFG));
-							UCA2TXBUF = 'F'; // TODO: Chris OK with?
-							uart_index[2]++;
-					}
-				}
-			// LISTENING_FOR_RESPONSE
-				if(uart_fsm_state[2] == LISTENING_FOR_RESPONSE){
-					if(uart_read_buffer[2][uart_index[2]] == 0x7B){
-						// find open buffer slot and if none found, go to buffer full state
-						for(uart_status_index[2] = 0; uart_status_index[2] <PI_HAT_SENSOR_CNT; uart_status_index[2]++){
-							if(uart_read_message_buffer_status[2][uart_status_index[2]]==AVAILABLE){
-								uart_fsm_state[2] = CAPTURING_RESPONSE;
-								uart_read_index[2] = 0; // May cause overwriting in future
-								msg_buffer_index[2] = uart_status_index[2];
-								break;
-							}
-							else if(uart_status_index[2] == PI_HAT_SENSOR_CNT-1){
-								uart_fsm_state[2] = MSG_BUFFER_FULL;
-							}
-						}
-					}
-					else{
-						while(!(UCA2IFG&UCTXIFG));
-						UCA2TXBUF = 'L';
-						uart_index[2]++;
-					}
-				}
-			// CAPTURING_RESPONSE
-				if(uart_fsm_state[2] == CAPTURING_RESPONSE){
-					uart_read_message_buffer[2][msg_buffer_index[2]][uart_read_index[2]] = uart_read_buffer[2][uart_index[2]];
-					if(uart_read_message_buffer[2][msg_buffer_index[2]][uart_read_index[2]] == 0x7D){// TODO: If end of msg len stop reading in...
-						uart_fsm_state[2] = LISTENING_FOR_RESPONSE;
-						uart_read_message_buffer[2][msg_buffer_index[2]][uart_read_index[2]+1] = '\0';
-						uart_read_message_buffer_status[2][uart_status_index[2]]=VALID;
-						msg_buffer_index[2]++;
-						uart_status[2]++;
-						while(!(UCA2IFG&UCTXIFG));
-						UCA2TXBUF = 'D';
-					}
-					else{
-						uart_read_index[2]++;
-						uart_index[2]++;
-						while(!(UCA2IFG&UCTXIFG));
-						UCA2TXBUF = 'C';
-					}
-				}
-				if(uart_index[2] == MSG_LEN){
-					uart_index[2] = 0;
-				}
-        	}
+        	UART_ISR(2);
 			break;
         case USCI_UART_UCTXIFG: break;
         case USCI_UART_UCSTTIFG: break;
@@ -417,70 +215,7 @@ void __attribute__ ((interrupt(EUSCI_A3_VECTOR))) USCI_A3_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_UART_UCRXIFG:
-        	if(uart_interrupt_style[3] == NO_BUFFER){
-        		RXSWFG3 = 1;
-        	}
-        	else if (uart_interrupt_style[3] == BUFFER){
-        		uart_read_buffer[3][uart_index[3]] = UCA3RXBUF;
-        		if(uart_status[3] >= PI_HAT_SENSOR_CNT){
-        			uart_fsm_state[3] = MSG_BUFFER_FULL;
-        		}
-        	// MSG_BUFFER_FULL
-				if(uart_fsm_state[3] == MSG_BUFFER_FULL){
-					if(uart_status[3] < PI_HAT_SENSOR_CNT){
-						uart_fsm_state[3] = LISTENING_FOR_RESPONSE;
-					}
-					else {
-						while(!(UCA3IFG&UCTXIFG));
-							UCA3TXBUF = 'F'; // TODO: Chris OK with?
-							uart_index[3]++;
-					}
-				}
-			// LISTENING_FOR_RESPONSE
-				if(uart_fsm_state[3] == LISTENING_FOR_RESPONSE){
-					if(uart_read_buffer[3][uart_index[3]] == 0x7B){
-						// find open buffer slot and if none found, go to buffer full state
-						for(uart_status_index[3] = 0; uart_status_index[3] <PI_HAT_SENSOR_CNT; uart_status_index[3]++){
-							if(uart_read_message_buffer_status[3][uart_status_index[3]]==AVAILABLE){
-								uart_fsm_state[3] = CAPTURING_RESPONSE;
-								uart_read_index[3] = 0; // May cause overwriting in future
-								msg_buffer_index[3] = uart_status_index[3];
-								break;
-							}
-							else if(uart_status_index[3] == PI_HAT_SENSOR_CNT-1){
-								uart_fsm_state[3] = MSG_BUFFER_FULL;
-							}
-						}
-					}
-					else{
-						while(!(UCA3IFG&UCTXIFG));
-						UCA3TXBUF = 'L';
-						uart_index[3]++;
-					}
-				}
-			// CAPTURING_RESPONSE
-				if(uart_fsm_state[3] == CAPTURING_RESPONSE){
-					uart_read_message_buffer[3][msg_buffer_index[3]][uart_read_index[3]] = uart_read_buffer[3][uart_index[3]];
-					if(uart_read_message_buffer[3][msg_buffer_index[3]][uart_read_index[3]] == 0x7D){// TODO: If end of msg len stop reading in...
-						uart_fsm_state[3] = LISTENING_FOR_RESPONSE;
-						uart_read_message_buffer[3][msg_buffer_index[3]][uart_read_index[3]+1] = '\0';
-						uart_read_message_buffer_status[3][uart_status_index[3]]=VALID;
-						msg_buffer_index[3]++;
-						uart_status[3]++;
-						while(!(UCA3IFG&UCTXIFG));
-						UCA3TXBUF = 'D';
-					}
-					else{
-						uart_read_index[3]++;
-						uart_index[3]++;
-						while(!(UCA3IFG&UCTXIFG));
-						UCA3TXBUF = 'C';
-					}
-				}
-				if(uart_index[3] == MSG_LEN){
-					uart_index[3] = 0;
-				}
-        	}
+        	UART_ISR(3);
 			break;
         case USCI_UART_UCTXIFG: break;
         case USCI_UART_UCSTTIFG: break;

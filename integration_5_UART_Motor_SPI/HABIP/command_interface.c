@@ -49,7 +49,6 @@ int get_colon_count(const char* s){
 		}
 	}
 }
-// TODO: Auto Baud Rate
 void read_response_val(int brd_num, char* sns, char** val){
 	if(!((brd_num>=0)&&(brd_num<=4))){
 		// error msg?
