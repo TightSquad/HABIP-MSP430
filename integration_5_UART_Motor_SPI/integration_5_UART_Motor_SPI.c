@@ -139,8 +139,8 @@ while(1){
 	UART_parse(1);
 	UART_parse(2);
 	UART_parse(3);
-	SPI_command_host_to_slave("{00:B4:ZGY}",&spi_readDoneFG,&TXDATA);
-	parse_response(spi_read_message);
+	SPI_command_host_to_slave("{00:B4:ZGY}",&spi_mst_readDoneFG);
+	parse_response(spi_mst_read_message);
 	__no_operation();
 }
 // End Main Code
@@ -507,7 +507,7 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
         	spi_mst_read_buffer[spi_mst_index] = UCB0RXBUF;
              switch(spi_mst_fsm_state)
              {
-                case IDLE:
+                case MST_IDLE:
 
                     break;
                 case CHECKING_IF_SLAVE_READY:
@@ -515,35 +515,37 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
                       spi_mst_fsm_state = SENDING_COMMAND;
                       spi_mst_write_index = 0;
                     }
-                    TX_B0('R')
+                    TX_B0('R');
                     break;
                 case SENDING_COMMAND:
                     spi_mst_tx_data = spi_mst_send_message[spi_mst_write_index++];
                     if(spi_mst_tx_data == '}'){
-                      spi_mst_fsm_state = LISTENING_FOR_RESPONSE;
+                      spi_mst_fsm_state = SPI_LISTENING_FOR_RESPONSE;
                     }
-                    TX_B0(spi_mst_tx_data)
+                    TX_B0(spi_mst_tx_data);
                     break;
-                case LISTENING_FOR_RESPONSE:
+                case SPI_LISTENING_FOR_RESPONSE:
                     if(spi_mst_read_buffer[spi_mst_index] == '{'){
-                      spi_mst_fsm_state = CAPTURING_RESPONSE;
+                      spi_mst_fsm_state = SPI_CAPTURING_RESPONSE;
                       spi_mst_read_message[0] = '{';
                       spi_mst_read_index = 1;
-                      TX_B0('C')
+                      TX_B0('C');
                     }
                     else{
-                        TX_B0('L')
+                        TX_B0('L');
                     }
                     break;
-                case CAPTURING_RESPONSE:
+                case SPI_CAPTURING_RESPONSE:
                     spi_mst_read_message[spi_mst_read_index++] = spi_mst_read_buffer[spi_mst_index];
                     if(spi_mst_read_buffer[spi_mst_index] == '}'){
-                      spi_mst_fsm_state = IDLE;
+                      spi_mst_fsm_state = MST_IDLE;
                       spi_mst_readDoneFG = 1;
-                      TX_B0('D')
+                      spi_mst_read_message[spi_mst_read_index] = '\0';
+                      TX_B0('D');
+                      __bic_SR_register_on_exit(LPM0_bits);
                     }
                     else {
-                      TX_B0('C')
+                      TX_B0('C');
                     }
                     break;
                 default:

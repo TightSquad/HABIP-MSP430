@@ -12,8 +12,8 @@
 #define MST_IDLE 0x00
 #define CHECKING_IF_SLAVE_READY 0x01
 #define SENDING_COMMAND 0x02
-#define LISTENING_FOR_RESPONSE 0x03
-#define CAPTURING_RESPONSE 0x04
+#define SPI_LISTENING_FOR_RESPONSE 0x03
+#define SPI_CAPTURING_RESPONSE 0x04
 #define SPI_MST_FSM_STATE_CNT 5
 
 // SPI Slave FSM States
@@ -29,10 +29,10 @@
             UCB0TXBUF = val;\
             spi_mst_send_buffer[spi_mst_index] = val;\
            })
-#define TX_A0_SPI=(val) ({\
-            while(!(UCB0IFG&UCTXIFG)) ;\
-            UCB0TXBUF = val;\
-            spi_mst_send_buffer[spi_mst_index] = val;\
+#define TX_A0_SPI(val) ({\
+            while(!(UCA0IFG&UCTXIFG)) ;\
+            UCA0TXBUF = val;\
+            spi_slv_send_buffer[spi_slv_index] = val;\
            })
 
 void config_SPI_B0_Master_GPIO(void);

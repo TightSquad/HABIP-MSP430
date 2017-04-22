@@ -7,6 +7,7 @@
 #include <msp430.h>
 #include "common.h"
 #include "spi.h"
+#include "string.h"
 
 // SPI UD Variables
 // Master (mst)
@@ -131,8 +132,9 @@ void config_SPI_A0_Slave(void){
 void SPI_command_host_to_slave(char* message,volatile int* read_done){
     // Kick of interactions
     UCB0IE |= UCRXIE; // char by char interaction
+    strcpy(spi_mst_send_message,message);
     spi_mst_fsm_state = CHECKING_IF_SLAVE_READY;
-    TX_B0('R')
+    TX_B0('R');
     // Chill until have successfully received a reply from slave
     // or until flag that shows need to reset?
     while(*read_done == 0){
