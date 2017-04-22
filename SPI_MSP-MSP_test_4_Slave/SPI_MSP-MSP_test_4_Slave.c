@@ -122,15 +122,15 @@ int main(void)
     config_XT1_GPIO();						// XT1 Crystal
 
 // Configure Clock
-    config_ACLK_XT1_32KHz_DCO_8MHz_SMCLK_250KHz();
+    config_XT1_ACLK_32768Hz_DCO_1MHz();
 
 // Configure SPI
     config_SPI_A0_Slave();
 
     __bis_SR_register(GIE);
 
-int count = 0;
-int cnt;
+	int count = 0;
+	int cnt = 0;
 // Begin Main Code
 	while(1){
 		__no_operation();
@@ -139,7 +139,7 @@ int cnt;
 		__delay_cycles(200);
               if(spi_slv_fsm_state == PARSING_COMMAND){
                   cnt = get_colon_count(spi_slv_read_message);
-                  if(cnt == 1 || cnt == 3){
+                  if(cnt == 0 || cnt == 2){
                       spi_slv_fsm_state = OBTAINING_DATA;
                   }
                   else{
@@ -147,8 +147,9 @@ int cnt;
                   }
               }
               if(spi_slv_fsm_state == OBTAINING_DATA){
-                  strcpy(spi_send_message,sensor_responses[count++]);
+                  strcpy(spi_slv_send_message,sensor_responses[count++]);
                   // spi_data_available = 1;
+                  spi_slv_write_index = 0;
                   spi_slv_fsm_state = RESPONDING_WITH_DATA;
                   if(count == DAQCS_SENSOR_CNT){
                     count = 0;
@@ -181,10 +182,10 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
                       spi_slv_fsm_state = CAPTURING_COMMAND;
                       spi_slv_read_message[0] = '{';
                       spi_slv_read_index = 1;
-                      TX_A0_SPI('C')
+                      TX_A0_SPI('C');
                     }
                     else{
-                        TX_A0_SPI('L')
+                        TX_A0_SPI('L');
                     }
                     break;
                 case CAPTURING_COMMAND:
@@ -192,24 +193,26 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
                     if(spi_slv_read_buffer[spi_slv_index] == '}'){
                       spi_slv_fsm_state = PARSING_COMMAND;
                       spi_slv_readDoneFG = 1;
-                      TX_A0_SPI('D')
+                      spi_slv_read_message[spi_slv_read_index] = '\0';
+                      TX_A0_SPI('D');
+                      __bic_SR_register_on_exit(LPM0_bits);
                     }
                     else {
-                      TX_A0_SPI('C')
+                      TX_A0_SPI('C');
                     }
                     break;
                 case PARSING_COMMAND:
-                    TX_A0_SPI('P')
+                    TX_A0_SPI('P');
                     break;
                 case OBTAINING_DATA:
-                    TX_A0_SPI('O')
+                    TX_A0_SPI('O');
                     break;
                 case RESPONDING_WITH_DATA:
                     spi_slv_tx_data = spi_slv_send_message[spi_slv_write_index++];
                     if(spi_slv_tx_data == '}'){
                       spi_slv_fsm_state = LISTENING_FOR_COMMAND;
                     }
-                    TX_A0_SPI(spi_slv_tx_data)
+                    TX_A0_SPI(spi_slv_tx_data);
                     break;
                 default:
 
