@@ -78,26 +78,20 @@
 #include "habip.h"
 #include "string.h"
 
-// UART UD Variables
-extern volatile char uart_read_buffer[MSG_LEN];
-extern volatile char uart_read_message[MSG_LEN];
-extern volatile char uart_index;
-//extern volatile int uart_readDoneFG;
-
 // SPI UD Variables
-extern volatile char TXDATA;
-extern char spi_read_buffer[BUFF_LEN];
-extern char spi_read_message[MSG_LEN];
-extern char spi_send_message[MSG_LEN];
-extern char spi_send_buffer[BUFF_LEN];
-extern volatile int msg_return;	//when to respond to SPI master
-extern volatile int spi_fsm_state;
-extern volatile int spi_index;
-extern volatile int spi_req_data;
-extern volatile int spi_data_available;
-extern volatile int spi_read_index;
-extern volatile int spi_write_index;
-extern volatile int spi_readDoneFG;
+// Slave (slv)
+extern volatile int spi_slv_fsm_state;
+extern char spi_slv_read_buffer[BUFF_LEN];
+extern char spi_slv_read_message[MSG_LEN];
+extern char spi_slv_send_message[MSG_LEN];
+extern char spi_slv_send_buffer[BUFF_LEN];
+extern volatile int spi_slv_index;
+extern volatile int spi_slv_req_data;
+extern volatile int spi_slv_data_available;
+extern volatile int spi_slv_write_index;
+extern volatile int spi_slv_read_index;
+extern volatile char spi_slv_tx_data;
+extern volatile int spi_slv_readDoneFG;
 
 char* sensor_responses[DAQCS_SENSOR_CNT] = {"{B4:TB0:1110}",
 							"{B4:P0:1111}",
@@ -117,7 +111,6 @@ char* sensor_responses[DAQCS_SENSOR_CNT] = {"{B4:TB0:1110}",
 							"{B4:ME:1125}"
 
 };
-int count = 0;
 int main(void)
 {
       WDTCTL = WDTPW | WDTHOLD;               // Stop Watchdog
@@ -129,31 +122,42 @@ int main(void)
     config_XT1_GPIO();						// XT1 Crystal
 
 // Configure Clock
-    config_XT1_ACLK_32768Hz_DCO_1MHz();
+    config_ACLK_XT1_32KHz_DCO_8MHz_SMCLK_250KHz();
 
 // Configure SPI
     config_SPI_A0_Slave();
 
-    UCA0TXBUF = 0x58;
     __bis_SR_register(GIE);
 
+int count = 0;
+int cnt;
 // Begin Main Code
 	while(1){
 		__no_operation();
 		__bis_SR_register(LPM0_bits);
   		__no_operation();
 		__delay_cycles(200);
-		if(spi_req_data == 1){
-			strcpy(spi_send_message,sensor_responses[count++]);
-			spi_data_available = 1;
-			if(count == DAQCS_SENSOR_CNT){
-				count = 0;
-			}
-		}
+              if(spi_slv_fsm_state == PARSING_COMMAND){
+                  cnt = get_colon_count(spi_slv_read_message);
+                  if(cnt == 1 || cnt == 3){
+                      spi_slv_fsm_state = OBTAINING_DATA;
+                  }
+                  else{
+                    spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+                  }
+              }
+              if(spi_slv_fsm_state == OBTAINING_DATA){
+                  strcpy(spi_send_message,sensor_responses[count++]);
+                  // spi_data_available = 1;
+                  spi_slv_fsm_state = RESPONDING_WITH_DATA;
+                  if(count == DAQCS_SENSOR_CNT){
+                    count = 0;
+                  }
+                }
 	}
 // End Main Code
 
-	while(1) ; // catchall for debug
+	// while(1) ; // catchall for debug
 }
 //*********************************************************************************************************//
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
@@ -169,75 +173,54 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_SPI_UCRXIFG:
-        	spi_read_buffer[spi_index] = UCA0RXBUF;
-        	TXDATA = 0x58;
-//        	if(spi_fsm_state >= SPI_FSM_STATE_CNT){ // TODO: Design robust if statemachine ditches val. and in middle of msg
-//        		spi_fsm_state = LISTENING_FOR_COMMAND;		// TODO: Add values shot back for state it is in.
-//        	}
-// LISTENING_FOR_COMMAND
-        	if(spi_fsm_state == LISTENING_FOR_COMMAND){
-				if(spi_read_buffer[spi_index] == 0x7B){
-					spi_fsm_state = CAPTURING_COMMAND;
-					spi_read_index = 0;
-				}
-				else{
-					TXDATA = 'L';
-					spi_index++;
-				}
+        	spi_slv_read_buffer[spi_slv_index] = UCA0RXBUF;
+             switch(spi_slv_fsm_state)
+             {
+                case LISTENING_FOR_COMMAND:
+                    if(spi_slv_read_buffer[spi_slv_index] == '{'){
+                      spi_slv_fsm_state = CAPTURING_COMMAND;
+                      spi_slv_read_message[0] = '{';
+                      spi_slv_read_index = 1;
+                      TX_A0_SPI('C')
+                    }
+                    else{
+                        TX_A0_SPI('L')
+                    }
+                    break;
+                case CAPTURING_COMMAND:
+                    spi_slv_read_message[spi_slv_read_index++] = spi_slv_read_buffer[spi_slv_index];
+                    if(spi_slv_read_buffer[spi_slv_index] == '}'){
+                      spi_slv_fsm_state = PARSING_COMMAND;
+                      spi_slv_readDoneFG = 1;
+                      TX_A0_SPI('D')
+                    }
+                    else {
+                      TX_A0_SPI('C')
+                    }
+                    break;
+                case PARSING_COMMAND:
+                    TX_A0_SPI('P')
+                    break;
+                case OBTAINING_DATA:
+                    TX_A0_SPI('O')
+                    break;
+                case RESPONDING_WITH_DATA:
+                    spi_slv_tx_data = spi_slv_send_message[spi_slv_write_index++];
+                    if(spi_slv_tx_data == '}'){
+                      spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+                    }
+                    TX_A0_SPI(spi_slv_tx_data)
+                    break;
+                default:
+
+                    break;
+             }
+        	if(spi_slv_index == BUFF_LEN-1){
+        		spi_slv_index = 0;
         	}
-// CAPTURING_COMMAND
-        	if(spi_fsm_state == CAPTURING_COMMAND){
-        		spi_read_message[spi_read_index] = spi_read_buffer[spi_index];
-				if(spi_read_message[spi_read_index] == 0x7D){
-					spi_fsm_state = OBTAINING_DATA;
-					spi_req_data = 1;
-//					__bic_SR_register_on_exit(LPM0_bits | GIE);
-					__bic_SR_register_on_exit(LPM0_bits);
-					__no_operation();
-				}
-				else{
-					TXDATA = 'C';
-					spi_read_index++;
-					spi_index++;
-				}
-			}
-// OBTAINING_DATA
-        	if(spi_fsm_state == OBTAINING_DATA){
-				if(spi_data_available == 1){
-					spi_fsm_state = SENDING_DATA;
-					spi_data_available = 0;
-					spi_req_data = 0;
-					spi_write_index = 0;
-				}
-				else{
-					TXDATA = 'O';
-					spi_index++;
-				}
-			}
-// SENDING_DATA
-        	if(spi_fsm_state == SENDING_DATA){
-				TXDATA = spi_send_message[spi_write_index];
-        		if(spi_send_message[spi_write_index] == 0x7D){
-        			spi_fsm_state = LISTENING_FOR_COMMAND;
-        			spi_index++;
-        		}
-        		else{
-        			spi_write_index++;
-        			spi_index++;
-        		}
-        	}
-//        	while (!(UCA0IFG&UCTXIFG));             // USCI_A0 TX buffer ready?
-        	while(!(UCA0IFG&UCTXIFG)){
-        		__no_operation();
-        		__no_operation();
-        		__no_operation();
-        		__no_operation();
-        	}
-        	UCA0TXBUF = TXDATA;
-        	spi_send_buffer[spi_index-1] = TXDATA;
-        	if(spi_index == BUFF_LEN){
-        		spi_index = 0;
-        	}
+              else {
+                spi_slv_index++;
+              }
 			break;
         case USCI_SPI_UCTXIFG:
             break;
