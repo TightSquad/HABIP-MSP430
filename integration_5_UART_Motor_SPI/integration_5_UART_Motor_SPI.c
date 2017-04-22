@@ -100,6 +100,7 @@ int main(void)
     config_UART_GPIO(2);
     config_UART_GPIO(3);
     config_SPI_B0_Master_GPIO();
+    config_RST_PI_GPIO();
     config_XT1_GPIO();
 
 
@@ -130,6 +131,10 @@ while(1){
 	UART_parse(3);
 	SPI_command_host_to_slave("{00:B4:ZGY}",&spi_mst_readDoneFG);
 	parse_response(spi_mst_read_message);
+	parse_cmd_from_comms("{05:B0}");
+	parse_cmd_from_comms("{05:B1}");
+	parse_cmd_from_comms("{05:B2}");
+	parse_cmd_from_comms("{05:B3}");
 	__no_operation();
 }
 // End Main Code
