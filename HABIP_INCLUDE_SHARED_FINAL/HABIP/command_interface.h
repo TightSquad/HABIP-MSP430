@@ -53,4 +53,6 @@ void parse_cmd_from_comms(char* msg);
 void parse_response(char* msg);
 void one_colon_extract(char* msg, char** first, char** second);
 void two_colon_extract(char* msg, char** first, char** second, char** third);
+void config_RST_PI_GPIO(void);
+void reset_pi(int brd_num);
 #endif /* HABIP_COMMAND_INTERFACE_H_ */

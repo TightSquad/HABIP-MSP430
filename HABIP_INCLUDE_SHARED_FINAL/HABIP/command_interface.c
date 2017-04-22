@@ -5,6 +5,7 @@
  *      Author: Lincster
  */
 #include "command_interface.h"
+#include "msp430.h"
 #include <string.h>
 #include "common.h"
 #include "uart.h"
@@ -49,7 +50,6 @@ int get_colon_count(const char* s){
 		}
 	}
 }
-// TODO: Auto Baud Rate
 void read_response_val(int brd_num, char* sns, char** val){
 	if(!((brd_num>=0)&&(brd_num<=4))){
 		// error msg?
@@ -331,29 +331,29 @@ void parse_response(char* msg){
 	}
 }
 void parse_cmd_from_comms(char* msg){
-	char msg_orig[MSG_LEN];
+	char msg_copy[MSG_LEN];
 	char* comms2_cmd = "";
 	char* comms2_val = "";
 	char* comms3_cmd = "";
 	char* comms3_brd = "";
 	char* comms3_sns = "";
-	strcpy(msg_orig,msg);
-	rmv_start_end_chars(msg);
-	int count = get_colon_count(msg);
+	strcpy(msg_copy,msg);
+	rmv_start_end_chars(msg_copy);
+	int count = get_colon_count(msg_copy);
 	switch(count)
 		{
 			case 0:
 				// Insert specific code for handling 0 colon commands or call fnc
-				if(strcmp(msg,"01")==0){
+				if(strcmp(msg_copy,"01")==0){
 					//TODO:
 					// Respond back with latest of every sensor imaginable from reponse_buffer for each board
 					// temp send to B0-B3 for testing.
-					UART_write_msg(0,msg_orig);
-					UART_write_msg(1,msg_orig);
-					UART_write_msg(2,msg_orig);
-					UART_write_msg(3,msg_orig);
+					UART_write_msg(0,msg);
+					UART_write_msg(1,msg);
+					UART_write_msg(2,msg);
+					UART_write_msg(3,msg);
 				}
-				else if(strcmp(msg,"FF")==0){
+				else if(strcmp(msg_copy,"FF")==0){
 					// Trigger Cutdown TODO:
 				}
 				else {
@@ -362,22 +362,26 @@ void parse_cmd_from_comms(char* msg){
 				break;
 			case 1:
 				// Insert specific code for handling 1 colon commands or call fnc
-				one_colon_extract(msg,&comms2_cmd,&comms2_val);
+				one_colon_extract(msg_copy,&comms2_cmd,&comms2_val);
 				if((strcmp(comms2_cmd,"03")==0)||(strcmp(comms2_cmd,"04")==0)){
 					// forward reaction wheel command to motor msp
 				}
 				else if(strcmp(comms2_cmd,"05")==0){
 					if(strcmp(comms2_val,"B0")==0){
-						// Trigger Board Reset to B0 TODO:
+						// Trigger Board Reset to B0
+						reset_pi(0);
 					}
 					else if(strcmp(comms2_val,"B1")==0){
 						// Trigger Board Reset to B1
+						reset_pi(1);
 					}
 					else if(strcmp(comms2_val,"B2")==0){
 						// Trigger Board Reset to B2
+						reset_pi(2);
 					}
 					else if(strcmp(comms2_val,"B3")==0){
 						// Trigger Board Reset to B3
+						reset_pi(3);
 					}
 					else {
 						// error msg?
@@ -385,10 +389,10 @@ void parse_cmd_from_comms(char* msg){
 				}
 				else if(strcmp(comms2_cmd,"06")==0){
 					// forward same msg to all 4 pis
-					UART_write_msg(0,msg_orig);
-					UART_write_msg(1,msg_orig);
-					UART_write_msg(2,msg_orig);
-					UART_write_msg(3,msg_orig);
+					UART_write_msg(0,msg);
+					UART_write_msg(1,msg);
+					UART_write_msg(2,msg);
+					UART_write_msg(3,msg);
 					// forward same msg to motor MSP
 					// update own timestamp.
 				}
@@ -399,26 +403,26 @@ void parse_cmd_from_comms(char* msg){
 				break;
 			case 2:
 				// Insert specific code for handling 2 colon commands or call fnc
-				two_colon_extract(msg,&comms3_cmd,&comms3_brd,&comms3_sns);
+				two_colon_extract(msg_copy,&comms3_cmd,&comms3_brd,&comms3_sns);
 				// TODO: LP future can do error checking for making sure valid msg from comms for other areas
 				if(strcmp(comms3_brd,"B0")==0){
 					// forward command to B0
-					UART_write_msg(0,msg_orig);
+					UART_write_msg(0,msg);
 					// something for preparing to receive later/immediately?
 				}
 				else if(strcmp(comms3_brd,"B1")==0){
 					// forward command to B1
-					UART_write_msg(1,msg_orig);
+					UART_write_msg(1,msg);
 					// something for preparing to receive later/immediately?
 				}
 				else if(strcmp(comms3_brd,"B2")==0){
 					// forward command to B2
-					UART_write_msg(2,msg_orig);
+					UART_write_msg(2,msg);
 					// something for preparing to receive later/immediately?
 				}
 				else if(strcmp(comms3_brd,"B3")==0){
 					// forward command to B3
-					UART_write_msg(3,msg_orig);
+					UART_write_msg(3,msg);
 					// something for preparing to receive later/immediately?
 					// TODO: decide on adding logic to ensure a response for every 00 sent
 				}
@@ -443,4 +447,43 @@ void two_colon_extract(char* msg, char** first, char** second, char** third){
 	*first = strtok(msg,":");
 	*second = strtok(NULL,":");
 	*third = strtok(NULL,":");
+}
+
+void config_RST_PI_GPIO(void){
+	// erase previous configs for bp
+	P4SEL1 &= ~(BIT4 | BIT5 | BIT6 | BIT7);
+	P4SEL0 &= ~(BIT4 | BIT5 | BIT6 | BIT7);
+	// set as outputs
+	P4DIR |= (BIT4 | BIT5 | BIT6 | BIT7);
+	// set low (assuming active high)
+	P4OUT &= ~(BIT4 | BIT5 | BIT6 | BIT7);
+}
+void reset_pi(int brd_num){
+	// dependent: config_rst_pi_GPIO();
+	// Note: currently designed assuming active high board reset
+	// Note: currently designed assuming 10ms @ 8MHz hold
+	switch(brd_num)
+	{
+	case 0:
+		P4OUT |= (BIT4);
+		__delay_cycles(80000);
+		P4OUT &= ~(BIT4);
+		break;
+	case 1:
+		P4OUT |= (BIT5);
+		__delay_cycles(80000);
+		P4OUT &= ~(BIT5);
+		break;
+	case 2:
+		P4OUT |= (BIT6);
+		__delay_cycles(80000);
+		P4OUT &= ~(BIT6);
+		break;
+	case 3:
+		P4OUT |= (BIT7);
+		__delay_cycles(80000);
+		P4OUT &= ~(BIT7);
+		break;
+	default: break;
+	}
 }
