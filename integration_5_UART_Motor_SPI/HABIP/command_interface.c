@@ -354,7 +354,8 @@ void parse_cmd_from_comms(char* msg){
 					UART_write_msg(3,msg);
 				}
 				else if(strcmp(msg_copy,"FF")==0){
-					// Trigger Cutdown TODO:
+					// Trigger Cutdown
+					cutdown();
 				}
 				else {
 					// error msg?
@@ -486,4 +487,22 @@ void reset_pi(int brd_num){
 		break;
 	default: break;
 	}
+}
+
+void config_CUTDOWN_GPIO(void){
+	// erase previous configs for bp
+	P4SEL1 &= ~(BIT0);
+	P4SEL0 &= ~(BIT0);
+	// set as outputs
+	P4DIR |= (BIT0);
+	// set low (assuming active high)
+	P4OUT &= ~(BIT0);
+}
+
+void cutdown(void){
+	// configured for 10 seconds
+	// TODO: RTC?
+	P4OUT |= (BIT0);
+	__delay_cycles(80000000);
+	P4OUT &= ~(BIT0);
 }

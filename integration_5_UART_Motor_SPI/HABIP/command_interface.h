@@ -55,4 +55,6 @@ void one_colon_extract(char* msg, char** first, char** second);
 void two_colon_extract(char* msg, char** first, char** second, char** third);
 void config_RST_PI_GPIO(void);
 void reset_pi(int brd_num);
+void config_CUTDOWN_GPIO(void);
+void cutdown(void);
 #endif /* HABIP_COMMAND_INTERFACE_H_ */

@@ -101,8 +101,8 @@ int main(void)
     config_UART_GPIO(3);
     config_SPI_B0_Master_GPIO();
     config_RST_PI_GPIO();
+    config_CUTDOWN_GPIO();
     config_XT1_GPIO();
-
 
 // temp
     P1DIR |= (BIT2);
@@ -113,7 +113,7 @@ int main(void)
 // Configure Clock
     config_ACLK_XT1_32KHz_DCO_8MHz_SMCLK_250KHz();
 
-// Configure UART
+// Configure Comms
     config_UART_9600_SMCLK_250KHz(0);
     config_UART_9600_SMCLK_250KHz(1);
     config_UART_9600_SMCLK_250KHz(2);
@@ -135,6 +135,7 @@ while(1){
 	parse_cmd_from_comms("{05:B1}");
 	parse_cmd_from_comms("{05:B2}");
 	parse_cmd_from_comms("{05:B3}");
+//    parse_cmd_from_comms("{FF}");
 	__no_operation();
 }
 // End Main Code
