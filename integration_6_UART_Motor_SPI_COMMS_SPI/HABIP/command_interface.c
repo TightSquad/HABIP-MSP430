@@ -27,7 +27,7 @@ extern char spi_mst_read_message[MSG_LEN];
 
 void create_respond_all_data_msg(void){
 	respond_all_data_msg[0] = '\0';
-    strcat(respond_all_data_msg,"{B4:TD0:");
+    strcat(respond_all_data_msg,"{B0:TD0:");
     strcat(respond_all_data_msg,response_buffer[0][PI_TD0]);
     response_status[0][PI_TD0] = OLD;
 	GRAB_PI_HAT(0,TB0);
