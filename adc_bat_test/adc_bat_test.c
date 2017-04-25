@@ -1,12 +1,12 @@
 #include <msp430.h> 
 #include <driverlib.h>
 
-void setupADC(int);
-int readADC(void);
+void setupADC(void);
+void readADC(int adc_mem_reg);
 
 uint16_t adc_val;
 int adc_software_flag = 0;
-double adc_cell_data[8];
+double adc_cell_data[6];
 int cellNum = 1;
 
 int main(void) {
@@ -17,19 +17,20 @@ int main(void) {
    PMM_unlockLPM5();
 
    int i = 1;
-   int current_adc_val;
+
+   // setup ADC
+   setupADC();
 
    for (i=1; i<7; i++){
 	   cellNum = i;
-	   setupADC(i);
-	   current_adc_val = readADC();
-	   adc_cell_data[i] = current_adc_val/4096*2.5;
+	   readADC(i);
+	   adc_cell_data[i-1] = (double) adc_val/4096*3.3;
     }
 
 	return adc_val;
 }
 
-void setupADC(int cellNum){
+void setupADC(void){
 	// VBAT_MOD_CELL_1 is for all 6 cells and is pin P3.0_A12_C12
 	// VBAT_MOD_CELL_2 is for 5 cells and is pin P3.1_A13_C13
 	// VBAT_MOD_CELL_3 is for 4 cells and is pin P3.2_A14_C14
@@ -117,35 +118,39 @@ void setupADC(int cellNum){
     // Enable interrupts for A19
     ADC12IER1 |= ADC12IE19;
 
-    // Start acquisitons for the MEM for the current battery cell
-    ADC12CTL3 = 0;
-    switch (cellNum){
-    case 1:
-    	ADC12CTL3 |= ADC12CSTARTADD_12; // MEM12
-    	break;
-    case 2:
-    	ADC12CTL3 |= ADC12CSTARTADD_13; // MEM13
-    	break;
-    case 3:
-    	ADC12CTL3 |= ADC12CSTARTADD_14; // MEM14
-    	break;
-    case 4:
-    	ADC12CTL3 |= ADC12CSTARTADD_17; // MEM17
-    	break;
-    case 5:
-    	ADC12CTL3 |= ADC12CSTARTADD_18; // MEM18
-    	break;
-    case 6:
-    	ADC12CTL3 |= ADC12CSTARTADD_19; // MEM19
-    	break;
-    default:
-    	break;
-    }
+
 }
 
-int readADC(void){
+void readADC(int adc_mem_reg){
+	// Start acquisitons for the MEM for the current battery cell
+	ADC12CTL3 = 0;
+	switch (adc_mem_reg){
+	case 1:
+		ADC12CTL3 |= ADC12CSTARTADD_12; // MEM12
+		break;
+	case 2:
+		ADC12CTL3 |= ADC12CSTARTADD_13; // MEM13
+		break;
+	case 3:
+		ADC12CTL3 |= ADC12CSTARTADD_14; // MEM14
+		break;
+	case 4:
+		ADC12CTL3 |= ADC12CSTARTADD_17; // MEM17
+		break;
+	case 5:
+		ADC12CTL3 |= ADC12CSTARTADD_18; // MEM18
+		break;
+	case 6:
+		ADC12CTL3 |= ADC12CSTARTADD_19; // MEM19
+		break;
+	default:
+		break;
+	}
+
 	// Enable ADC and start acquisition
-   ADC12CTL0 |= ADC12ENC + ADC12SC;
+   ADC12CTL0 |= ADC12ENC;
+
+   ADC12CTL0 |= ADC12SC;
 
    //enable general interrupts
    __bis_SR_register(LPM0_bits | GIE);
@@ -159,7 +164,7 @@ int readADC(void){
    //clear the adc software flag
    adc_software_flag = 0;
 
-   return adc_val;
+   return;
 }
 
 
@@ -193,6 +198,7 @@ __interrupt void ADC12_ISR(void)
 	}
 
 	__bic_SR_register_on_exit(LPM0_bits);
+
 	return;
 
 }
