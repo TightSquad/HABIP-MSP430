@@ -10,6 +10,6 @@
 	<rts value="libc.a"/>
 	<createSlaveProjects value=""/>
 	<templateProperties value="id=BlinkLED_MSP430FR5994.projectspec.BlinkLED_MSP430FR5994,"/>
-	<origin value="C:/Users/stevy/OneDrive/Documents/Steven&apos;s Stuff/RIT 5/Senior Design/HABIP_Code/MSP430/temo_i2c_test_2"/>
+	<origin value="e:/Users/Adam/Documents/GitHub/habip/MSP_HOST_FIRMWARE/temp_i2c_test_2"/>
 	<filesToOpen value="main.c,"/>
 </projectOptions>
