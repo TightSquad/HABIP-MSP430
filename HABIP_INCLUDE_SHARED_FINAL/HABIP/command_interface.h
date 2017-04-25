@@ -83,12 +83,16 @@
     strcat(respond_all_data_msg,response_buffer_b4[DQ_##sns]);\
     response_status_b4[DQ_##sns] = OLD;\
   }
+#define grab_all_pi_hat(brd_num) UART_write_msg(brd_num,"{01}");
+#define grab_all_daqcs(sns) SPI_command_host_to_slave("{00:B4:"Q_##sns"}",&spi_mst_readDoneFG);\
+  parse_response(spi_mst_read_message);\
 
 int get_colon_count(const char* s);
 void rmv_start_end_chars(char* s);
 void store_response_val(int brd_num, char* sns, char* val);
 void read_response_val(int brd_num, char* sns, char** val);
 void parse_cmd_from_comms(char* msg);
+void create_comms_response(char* brd, char* sns, char* val);
 void parse_response(char* msg);
 void create_respond_all_data_msg(void);
 void one_colon_extract(char* msg, char** first, char** second);
@@ -97,4 +101,5 @@ void config_RST_PI_GPIO(void);
 void reset_pi(int brd_num);
 void config_CUTDOWN_GPIO(void);
 void cutdown(void);
+void grab_all_motor_msp(void);
 #endif /* HABIP_COMMAND_INTERFACE_H_ */

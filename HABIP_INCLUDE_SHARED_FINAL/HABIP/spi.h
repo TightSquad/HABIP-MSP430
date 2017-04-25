@@ -50,5 +50,6 @@ void config_SPI_B1_Slave(void);
 void config_SPI_A0_Slave_GPIO(void);
 void config_SPI_A0_Slave(void);
 void SPI_command_host_to_slave(char* message,volatile int* read_done);
+void SPI_command_host_to_slave_no_response(char* message,volatile int* send_done);
 
 #endif /* SPI_H_ */

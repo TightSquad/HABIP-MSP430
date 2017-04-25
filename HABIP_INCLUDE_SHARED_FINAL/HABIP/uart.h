@@ -74,6 +74,7 @@ void UART_parse(int brd_num);
             uart_status[brd_num]++;\
             while(!(UCA##brd_num##IFG&UCTXIFG));\
             UCA##brd_num##TXBUF = 'D';\
+            __bic_SR_register_on_exit(LPM0_bits);\
           }\
           else{\
             uart_read_index[brd_num]++;\

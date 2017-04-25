@@ -21,6 +21,8 @@ volatile int spi_mst_write_index = 0;
 volatile int spi_mst_read_index = 0;
 volatile char spi_mst_tx_data = '\0';
 volatile int spi_mst_readDoneFG = 0;
+volatile int spi_mst_sendDoneFG = 0;
+volatile int spi_mst_send_only = 0;
 
 // Slave (slv)
 volatile int spi_slv_fsm_state = LISTENING_FOR_COMMAND;
@@ -137,5 +139,23 @@ void SPI_command_host_to_slave(char* message,volatile int* read_done){
     	__no_operation();
     }
     *read_done = 0;
+    UCB0IE &= ~UCRXIE; // Clear RX interrupt so no noise read in?
+}
+
+void SPI_command_host_to_slave_no_response(char* message,volatile int* send_done){
+    // Kick of interactions
+    UCB0IE |= UCRXIE; // char by char interaction
+    strcpy(spi_mst_send_message,message);
+    spi_mst_send_only = 1;
+    spi_mst_fsm_state = CHECKING_IF_SLAVE_READY;
+    TX_B0('R');
+    // Chill until have successfully received a reply from slave
+    // or until flag that shows need to reset?
+    while(*send_done == 0){
+        __bis_SR_register(LPM0_bits); // Enter LPM0
+        __no_operation();
+    }
+    spi_mst_send_only = 0;
+    *send_done = 0;
     UCB0IE &= ~UCRXIE; // Clear RX interrupt so no noise read in?
 }

@@ -75,6 +75,8 @@ extern volatile int spi_mst_write_index;
 extern volatile int spi_mst_read_index;
 extern volatile char spi_mst_tx_data;
 extern volatile int spi_mst_readDoneFG;
+extern volatile int spi_mst_sendDoneFG;
+extern volatile int spi_mst_send_only;
 
 // Slave (slv)
 extern volatile int spi_slv_fsm_state;
@@ -90,6 +92,8 @@ extern volatile int spi_slv_read_index;
 extern volatile char spi_slv_tx_data;
 
 extern char respond_all_data_msg[1024];
+
+volatile int timer_counter = 0;
 
 //*********************************************************************************************************//
 int main(void)
@@ -124,28 +128,70 @@ int main(void)
     config_SPI_B0_Master_SMCLK();
     config_SPI_B1_Slave();
 
+// Timer
+    TA1CCTL0 = CCIE;                        // TACCR0 interrupt enabled
+    TA1CCR0 = 65000;						// ~2 seconds
+    TA1CTL = TASSEL__ACLK | MC__UP;         // ACLK, up mode
+
     __no_operation();
     __bis_SR_register(GIE);
 
 // Begin Main Code
 while(1){
+	P1OUT ^= BIT2;
+	__bis_SR_register(LPM0_bits); // Enter LPM0
+	__no_operation();
+	if(spi_slv_fsm_state == PARSING_COMMAND){
+		parse_cmd_from_comms(spi_slv_read_message);
+	}
+	if(timer_counter == 1){
+		grab_all_pi_hat(0);
+		timer_counter++;
+	}
+	else if(timer_counter == 3){
+		grab_all_pi_hat(1);
+		timer_counter++;
+	}
+	else if(timer_counter == 5){
+		grab_all_pi_hat(2);
+		timer_counter++;
+	}
+	else if(timer_counter == 7){
+		grab_all_pi_hat(3);
+		timer_counter++;
+	}
+	else if(timer_counter == 9){
+		grab_all_motor_msp();
+		timer_counter++;
+	}
 	UART_parse(0);
 	UART_parse(1);
 	UART_parse(2);
 	UART_parse(3);
-	SPI_command_host_to_slave("{00:B4:ZGY}",&spi_mst_readDoneFG);
-	parse_response(spi_mst_read_message);
-	if(spi_slv_fsm_state == PARSING_COMMAND){
-                parse_cmd_from_comms(spi_slv_read_message);
-	}
-	P1OUT |= BIT2;
-	parse_cmd_from_comms("{01}");
-	P1OUT &= ~BIT2;
+//            parse_cmd_from_comms("{01}");
 	__no_operation();
 }
 // End Main Code
 
 //	while(1) ; // catchall for debug
+}
+// Timer A1 interrupt service routine
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector = TIMER1_A0_VECTOR
+__interrupt void Timer1_A0_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(TIMER1_A0_VECTOR))) Timer1_A0_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    if(timer_counter == 10){
+        timer_counter = 0;
+    }
+    else{
+        timer_counter++;
+    }
+    __bic_SR_register_on_exit(LPM0_bits);
 }
 //*********************************************************************************************************//
 //*********************************		TALK TO PI HATS UART	  *****************************************//
@@ -348,7 +394,13 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
                 case SENDING_COMMAND:
                     spi_mst_tx_data = spi_mst_send_message[spi_mst_write_index++];
                     if(spi_mst_tx_data == '}'){
-                      spi_mst_fsm_state = SPI_LISTENING_FOR_RESPONSE;
+                      spi_mst_sendDoneFG = 1;
+                      if(spi_mst_send_only == 1){
+                        spi_mst_fsm_state = MST_IDLE;
+                      }
+                      else{
+                        spi_mst_fsm_state = SPI_LISTENING_FOR_RESPONSE;
+                      }
                     }
                     TX_B0(spi_mst_tx_data);
                     break;

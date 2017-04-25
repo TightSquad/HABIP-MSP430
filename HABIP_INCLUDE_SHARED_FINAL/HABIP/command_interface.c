@@ -20,6 +20,10 @@ char response_status_b4[DAQCS_SENSOR_CNT] = {{OLD}};
 char respond_all_data_msg[1024] = {};
 
 extern volatile int spi_slv_fsm_state;
+extern volatile int spi_mst_readDoneFG;
+extern volatile int spi_mst_sendDoneFG;
+extern char spi_slv_send_message[MSG_LEN];
+extern char spi_mst_read_message[MSG_LEN];
 
 void create_respond_all_data_msg(void){
 	respond_all_data_msg[0] = '\0';
@@ -391,12 +395,13 @@ void parse_response(char* msg){
 	}
 }
 void parse_cmd_from_comms(char* msg){
-	char msg_copy[MSG_LEN];
+	char msg_copy[MSG_LEN] = {};
 	char* comms2_cmd = "";
 	char* comms2_val = "";
 	char* comms3_cmd = "";
 	char* comms3_brd = "";
 	char* comms3_sns = "";
+	char* resp_val = "";
 	strcpy(msg_copy,msg);
 	rmv_start_end_chars(msg_copy);
 	int count = get_colon_count(msg_copy);
@@ -423,23 +428,29 @@ void parse_cmd_from_comms(char* msg){
 				one_colon_extract(msg_copy,&comms2_cmd,&comms2_val);
 				if((strcmp(comms2_cmd,"03")==0)||(strcmp(comms2_cmd,"04")==0)){
 					// forward reaction wheel command to motor msp
+					SPI_command_host_to_slave_no_response(msg, &spi_mst_sendDoneFG);
+					spi_slv_fsm_state = LISTENING_FOR_COMMAND;
 				}
 				else if(strcmp(comms2_cmd,"05")==0){
 					if(strcmp(comms2_val,"B0")==0){
 						// Trigger Board Reset to B0
 						reset_pi(0);
+						spi_slv_fsm_state = LISTENING_FOR_COMMAND;
 					}
 					else if(strcmp(comms2_val,"B1")==0){
 						// Trigger Board Reset to B1
 						reset_pi(1);
+						spi_slv_fsm_state = LISTENING_FOR_COMMAND;
 					}
 					else if(strcmp(comms2_val,"B2")==0){
 						// Trigger Board Reset to B2
 						reset_pi(2);
+						spi_slv_fsm_state = LISTENING_FOR_COMMAND;
 					}
 					else if(strcmp(comms2_val,"B3")==0){
 						// Trigger Board Reset to B3
 						reset_pi(3);
+						spi_slv_fsm_state = LISTENING_FOR_COMMAND;
 					}
 					else {
 						// error msg?
@@ -452,7 +463,9 @@ void parse_cmd_from_comms(char* msg){
 					UART_write_msg(2,msg);
 					UART_write_msg(3,msg);
 					// forward same msg to motor MSP
-					// update own timestamp.
+					SPI_command_host_to_slave_no_response(msg, &spi_mst_sendDoneFG);
+					spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+					// update own timestamp. TODO:
 				}
 				else {
 					// error msg?
@@ -464,30 +477,34 @@ void parse_cmd_from_comms(char* msg){
 				two_colon_extract(msg_copy,&comms3_cmd,&comms3_brd,&comms3_sns);
 				// TODO: LP future can do error checking for making sure valid msg from comms for other areas
 				if(strcmp(comms3_brd,"B0")==0){
-					// forward command to B0
-					UART_write_msg(0,msg);
-					// something for preparing to receive later/immediately?
+					spi_slv_fsm_state = OBTAINING_DATA;
+					read_response_val(0, comms3_sns, &resp_val);
+					create_comms_response(comms3_brd,comms3_sns,resp_val);
+					spi_slv_fsm_state = RESPONDING_WITH_DATA;
 				}
 				else if(strcmp(comms3_brd,"B1")==0){
-					// forward command to B1
-					UART_write_msg(1,msg);
-					// something for preparing to receive later/immediately?
+					spi_slv_fsm_state = OBTAINING_DATA;
+					read_response_val(1, comms3_sns, &resp_val);
+					create_comms_response(comms3_brd,comms3_sns,resp_val);
+					spi_slv_fsm_state = RESPONDING_WITH_DATA;
 				}
 				else if(strcmp(comms3_brd,"B2")==0){
-					// forward command to B2
-					UART_write_msg(2,msg);
-					// something for preparing to receive later/immediately?
+					spi_slv_fsm_state = OBTAINING_DATA;
+					read_response_val(2, comms3_sns, &resp_val);
+					create_comms_response(comms3_brd,comms3_sns,resp_val);
+					spi_slv_fsm_state = RESPONDING_WITH_DATA;
 				}
 				else if(strcmp(comms3_brd,"B3")==0){
-					// forward command to B3
-					UART_write_msg(3,msg);
-					// something for preparing to receive later/immediately?
-					// TODO: decide on adding logic to ensure a response for every 00 sent
+					spi_slv_fsm_state = OBTAINING_DATA;
+					read_response_val(3, comms3_sns, &resp_val);
+					create_comms_response(comms3_brd,comms3_sns,resp_val);
+					spi_slv_fsm_state = RESPONDING_WITH_DATA;
 				}
 				else if(strcmp(comms3_brd,"B4")==0){
-					// forward command to Motor MSP
-					// something for preparing to receive later/immediately?
-					// note sensors may be deactivated atm
+					spi_slv_fsm_state = OBTAINING_DATA;
+					read_response_val(4, comms3_sns, &resp_val);
+					create_comms_response(comms3_brd,comms3_sns,resp_val);
+					spi_slv_fsm_state = RESPONDING_WITH_DATA;
 				}
 				else {
 					// error msg?
@@ -496,6 +513,17 @@ void parse_cmd_from_comms(char* msg){
 
 			default: break;
 		}
+}
+void create_comms_response(char* brd, char* sns, char* val){
+	char spi_send_msg_temp[MSG_LEN] = {};
+	strcpy(spi_send_msg_temp,"{");
+	strcat(spi_send_msg_temp,brd);
+	strcat(spi_send_msg_temp,":");
+	strcat(spi_send_msg_temp,sns);
+	strcat(spi_send_msg_temp,":");
+	strcat(spi_send_msg_temp,val);
+	strcat(spi_send_msg_temp,"}");
+	strcpy(spi_slv_send_message,spi_send_msg_temp);
 }
 void one_colon_extract(char* msg, char** first, char** second){
 	*first = strtok(msg,":");
@@ -519,27 +547,27 @@ void config_RST_PI_GPIO(void){
 void reset_pi(int brd_num){
 	// dependent: config_rst_pi_GPIO();
 	// Note: currently designed assuming active high board reset
-	// Note: currently designed assuming 10ms @ 8MHz hold
+	// Note: currently designed assuming 100ms @ 8MHz hold
 	switch(brd_num)
 	{
 	case 0:
 		P4OUT |= (BIT4);
-		__delay_cycles(80000);
+		__delay_cycles(800000);
 		P4OUT &= ~(BIT4);
 		break;
 	case 1:
 		P4OUT |= (BIT5);
-		__delay_cycles(80000);
+		__delay_cycles(800000);
 		P4OUT &= ~(BIT5);
 		break;
 	case 2:
 		P4OUT |= (BIT6);
-		__delay_cycles(80000);
+		__delay_cycles(800000);
 		P4OUT &= ~(BIT6);
 		break;
 	case 3:
 		P4OUT |= (BIT7);
-		__delay_cycles(80000);
+		__delay_cycles(800000);
 		P4OUT &= ~(BIT7);
 		break;
 	default: break;
@@ -562,4 +590,23 @@ void cutdown(void){
 	P4OUT |= (BIT0);
 	__delay_cycles(80000000);
 	P4OUT &= ~(BIT0);
+}
+
+void grab_all_motor_msp(void){
+	grab_all_daqcs(TB0);
+	grab_all_daqcs(P0);
+	grab_all_daqcs(PB);
+	grab_all_daqcs(V);
+	grab_all_daqcs(C);
+	grab_all_daqcs(XGY);
+	grab_all_daqcs(XAC);
+	grab_all_daqcs(YGY);
+	grab_all_daqcs(YAC);
+	grab_all_daqcs(ZGY);
+	grab_all_daqcs(ZAC);
+	grab_all_daqcs(MS);
+	grab_all_daqcs(MC);
+	grab_all_daqcs(MV);
+	grab_all_daqcs(MD);
+	grab_all_daqcs(ME);
 }
