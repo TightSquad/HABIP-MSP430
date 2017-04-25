@@ -75,7 +75,7 @@ int mapADC(int input){
 
 	// motor controller output ranges (RPM)
 	static int out_min = 0;
-	static int out_max = 2500;
+	static int out_max = 2590;
 
 	return (input - in_min) * ((out_max - out_min) / (in_max - in_min)) + out_min;
 }
