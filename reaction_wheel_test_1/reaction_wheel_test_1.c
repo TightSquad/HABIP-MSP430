@@ -85,6 +85,7 @@ int main(void) {
 
 	//imu stuff
 	double z_gyro_rpm;
+	double z_gyro_ema;
 
 	//motor control variables
 	int motor_duty_cycle = 2000;
@@ -115,10 +116,12 @@ int main(void) {
 
 		// grab IMU data
 		z_gyro_data = read_IMU_SPI(ZGYRO);
-		z_gyro_rpm = IMUtoRPM(z_gyro_data);
+
+		// exponential moving average of IMU_rpm data
+		z_gyro_ema = EMA(IMUtoRPM(z_gyro_data), z_gyro_ema);
 
 		//store in an array to plot later
-		__data20_write_short((unsigned long int)fram_data + row + 4, z_gyro_data);
+		__data20_write_short((unsigned long int)fram_data + row + 4, (int)z_gyro_ema);
 
 		//capture current ADC value
 		current_adc_val = readADC();
@@ -139,15 +142,15 @@ int main(void) {
 		__data20_write_short((unsigned long int)fram_data + row, curr_sec);
 
 		//motor control stuff
-		if(z_gyro_data > 40){
+		if(z_gyro_data > 80){
 			motorON();
 			motorCCW();
-			motorRPM(340 * z_gyro_rpm);
+			motorRPM(250 * z_gyro_rpm);
 		}
-		else if (z_gyro_data < -40){
+		else if (z_gyro_data < -80){
 			motorON();
 			motorCW();
-			motorRPM(-340  * z_gyro_rpm);
+			motorRPM(-250  * z_gyro_rpm);
 		}
 		else{
 			motorRPM(0);

@@ -120,6 +120,14 @@ double IMUtoRPM(int imu_value){
 	return imu_deg_per_sec / 6;
 }
 
+// Exponential moving average
+// https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
+double EMA(double new_sample, double ma_old){
+	// A lower alpha discounts older observations faster
+	double alpha = 0.3;
+	return alpha * new_sample + (1-alpha) * ma_old;
+}
+
 
 #if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
 #pragma vector=EUSCI_A1_VECTOR
