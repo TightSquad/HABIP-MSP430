@@ -167,6 +167,7 @@ SECTIONS
     } > 0x4000
 
 	.TI.persistent : {} >> FRAM2
+	.TI.noinit : {} >> FRAM2
 
     .cinit            : {}  > FRAM          /* Initialization tables             */
     .binit            : {}  > FRAM          /* Boot-time Initialization tables   */

@@ -55,7 +55,7 @@ extern int noSDCard;
 void sdcardLog(void);
 void sendDataSDCard(void);
 void sendTimeStampSDCard(void);
-void storeTimeStampSDCard(void);
+void storeTimeStampSDCard(unsigned short* numLogFiles);
 char * itoa(int, char *, int);
 void writeData(char * data);
 void writeDataSameLine(char * data, char * data2, char * data3);
@@ -67,7 +67,7 @@ void writeDataSameLine_3(char * data, char * data2,  char * data3);
 void writeDataSameLine_4(char * data, char * data2,  char * data3, char * data4);
 void SDFindRow(void);
 void SDCloseSPI(void);
-void SDCardNewFile(void);
+void SDCardNewFile(unsigned short* numLogFiles);
 //-------------------
 
 

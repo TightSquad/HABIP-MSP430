@@ -21,14 +21,17 @@ Calendar calendar;                                // Calendar used for RTC
 
 Calendar currTime;
 
-int NumLoggedDataRows = 20000;
+int NumLoggedDataRows = 25000;
+//int NumLoggedDataRows = 1000;
 
 unsigned char count = 0;
 unsigned long data;
 
 
 #pragma PERSISTENT(fram_data)
-unsigned short fram_data[0x10002] = {0};
+unsigned short fram_data[0x186A2] = {0};
+#pragma NOINIT(numLogFiles)
+unsigned short numLogFiles;
 
 void Init_GPIO(void);
 void Init_Clock(void);
@@ -68,19 +71,28 @@ int main(void) {
     Init_Clock();
 
     // create the folder on SD card
-    storeTimeStampSDCard();
+    storeTimeStampSDCard(&numLogFiles);
 
 	int log_num = 0;
 	int num_file = 0;
 	int blink_count = 0;
+
 	char time_sec[8];
 	char curr_ms[8];
-	int curr_sec;
+
+	uint16_t curr_sec_ms;
+	uint16_t rtc_ms;
+	uint16_t curr_sec;
+
+	uint16_t curr_hour_min;
+	uint16_t curr_min;
+	uint16_t curr_hour;
+
 	signed short z_gyro_data;
 	char z_gyro_char[8];
 	char adc_char[8];
 	int current_adc_val;
-	long rtc_ms;
+
 
 	long row = 0;
 
@@ -116,26 +128,34 @@ int main(void) {
 			// grab IMU data
 			z_gyro_data = read_IMU_SPI(ZGYRO);
 
-			//store in an array to plot later
-			__data20_write_short((unsigned long int)fram_data + row + 4, z_gyro_data);
-
 			//capture current ADC value
 			current_adc_val = readADC();
-			__data20_write_short((unsigned long int)fram_data + row + 6, current_adc_val);
 
 			//speed up clock to 8MHz
 			Init_Clock();
 
 			//grab RTC counter
 			rtc_ms =  RTCPS;
-			//convert RTC counter to ms
-			rtc_ms = (int)(((long)rtc_ms * 1000l)/32768l);
-			__data20_write_short((unsigned long int)fram_data + row + 2, rtc_ms);
 
 			//get current time in seconds from RTC_C
 			currTime = RTC_C_getCalendarTime(RTC_C_BASE);
-			curr_sec = currTime.Seconds;
-			__data20_write_short((unsigned long int)fram_data + row, curr_sec);
+			curr_sec = (uint16_t)currTime.Seconds;
+			curr_min = (uint16_t)currTime.Minutes;
+			curr_hour = (uint16_t)currTime.Hours;
+
+			// convert rtcps to ms
+			rtc_ms = (uint16_t)(((long)rtc_ms * 500l)/32768l);
+
+			// concatenate seconds/ms and hour/min
+			curr_sec_ms = (curr_sec << 10) | rtc_ms;
+			curr_hour_min = (curr_hour << 8) | curr_min;
+
+			// write the data to FRAM
+			__data20_write_short((unsigned long int)fram_data + row, curr_hour_min);
+			__data20_write_short((unsigned long int)fram_data + row + 2, curr_sec_ms);
+			__data20_write_short((unsigned long int)fram_data + row + 4, z_gyro_data);
+			__data20_write_short((unsigned long int)fram_data + row + 6, current_adc_val);
+
 
 			//motor control stuff
 			if (second_counter < (int)curr_sec){
@@ -216,7 +236,7 @@ int main(void) {
 		log_num = 0;
 		num_file++;
 		 // create new file to save data
-		SDCardNewFile();
+		SDCardNewFile(&numLogFiles);
 	}
 
 	GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
@@ -295,7 +315,7 @@ void Init_RTC()
     //Setup Current Time for Calendar
     calendar.Seconds    = 0x00;
     calendar.Minutes    = 0x00;
-    calendar.Hours      = 0x02;
+    calendar.Hours      = 0x00;
     calendar.DayOfWeek  = 0x06;
     calendar.DayOfMonth = 0x11;
     calendar.Month      = 0x04;

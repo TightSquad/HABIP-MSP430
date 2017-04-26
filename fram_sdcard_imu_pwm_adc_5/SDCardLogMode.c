@@ -49,12 +49,12 @@
 #include "HAL_SDCard.h"
 
 // FRAM variable to keep track of number of SDCard logfiles
-#if defined(__IAR_SYSTEMS_ICC__)
-__persistent uint8_t numLogFiles = 0;
-#elif defined(__TI_COMPILER_VERSION__)
-#pragma PERSISTENT(numLogFiles)
-unsigned short numLogFiles = 0;
-#endif
+//#if defined(__IAR_SYSTEMS_ICC__)
+//__persistent uint8_t numLogFiles = 0;
+//#elif defined(__TI_COMPILER_VERSION__)
+//#pragma NOINIT(numLogFiles)
+//unsigned short numLogFiles;
+//#endif
 
 uint8_t LogFileNum = 0;
 
@@ -475,175 +475,176 @@ void SDFindRow(void){
 /*
  * Send SDCardLogMode starting TimeStamp through UART
  */
-void sendTimeStampSDCard()
-{
-	int numLogFilesTemp;
-
-    //Plugin SDcard interface to SDCard lib
-    SDCardLib_init(&sdCardLib, &sdIntf_MSP430FR5994LP);
-
-    //Detect SD card
-    SDCardLib_Status st = SDCardLib_detectCard(&sdCardLib);
-    if (st == SDCARDLIB_STATUS_NOT_PRESENT) {
-    	SDCardLib_unInit(&sdCardLib);
-    	mode = '0';
-    	noSDCard = 1;
-    	return;
-    }
-
-    // Construct log file's name
-    numLogFilesTemp = __data20_read_short((unsigned long int)numLogFiles);
-    if (numLogFilesTemp == 0){
-    	numLogFilesTemp++;
-    	__data20_write_short((unsigned long int)numLogFiles, numLogFilesTemp);
-    }
-    strcpy(filename, "data_log/log_");
-    char num[5];
-    itoa(numLogFilesTemp, num, 10);
-    strcat(filename, num);
-    strcat(filename, ".txt");
-
-    rc = f_open(&fil, filename, FA_READ | FA_OPEN_EXISTING);
-    if (rc) {
-    	strcpy(buffer, "1234567890123");
-    }
-    else {
-		rc = f_lseek(&fil, 28);
-
-		// Reads TimeStamp from SDCard log file
-		f_gets(buffer, MAX_BUF_SIZE, &fil);
-    }
-    rc = f_close(&fil);
-
-    SDCardLib_unInit(&sdCardLib);
-
-	// Select UART TXD on P2.0
-    GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN0, GPIO_SECONDARY_MODULE_FUNCTION);
-    __delay_cycles(900000);
-    int i;
-    for (i=0;i<13;i++) {
-        EUSCI_A_UART_transmitData(EUSCI_A0_BASE, buffer[i]);
-    }
-
-    __delay_cycles(900000);
-
-    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
-	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);
-}
+//void sendTimeStampSDCard()
+//{
+//	int numLogFilesTemp;
+//
+//    //Plugin SDcard interface to SDCard lib
+//    SDCardLib_init(&sdCardLib, &sdIntf_MSP430FR5994LP);
+//
+//    //Detect SD card
+//    SDCardLib_Status st = SDCardLib_detectCard(&sdCardLib);
+//    if (st == SDCARDLIB_STATUS_NOT_PRESENT) {
+//    	SDCardLib_unInit(&sdCardLib);
+//    	mode = '0';
+//    	noSDCard = 1;
+//    	return;
+//    }
+//
+//    // Construct log file's name
+////    numLogFilesTemp = __data20_read_short((unsigned long int)numLogFiles);
+////    if (numLogFilesTemp == 0){
+////    	numLogFilesTemp++;
+////    	__data20_write_short((unsigned long int)numLogFiles, numLogFilesTemp);
+////    }
+//    strcpy(filename, "data_log/log_");
+//    char num[5];
+//    itoa(numLogFilesTemp, num, 10);
+//    strcat(filename, num);
+//    strcat(filename, ".txt");
+//
+//    rc = f_open(&fil, filename, FA_READ | FA_OPEN_EXISTING);
+//    if (rc) {
+//    	strcpy(buffer, "1234567890123");
+//    }
+//    else {
+//		rc = f_lseek(&fil, 28);
+//
+//		// Reads TimeStamp from SDCard log file
+//		f_gets(buffer, MAX_BUF_SIZE, &fil);
+//    }
+//    rc = f_close(&fil);
+//
+//    SDCardLib_unInit(&sdCardLib);
+//
+//	// Select UART TXD on P2.0
+//    GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN0, GPIO_SECONDARY_MODULE_FUNCTION);
+//    __delay_cycles(900000);
+//    int i;
+//    for (i=0;i<13;i++) {
+//        EUSCI_A_UART_transmitData(EUSCI_A0_BASE, buffer[i]);
+//    }
+//
+//    __delay_cycles(900000);
+//
+//    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
+//	GPIO_setAsOutputPin(GPIO_PORT_P2, GPIO_PIN0);
+//}
 
 /*
  * Send SDCard temperature and voltage data through UART
  */
-void sendDataSDCard()
-{
-	int numLogFilesTemp;
-    //Plugin SDcard interface to SDCard lib
-    SDCardLib_init(&sdCardLib, &sdIntf_MSP430FR5994LP);
-
-    //Detect SD card
-    SDCardLib_Status st = SDCardLib_detectCard(&sdCardLib);
-    if (st == SDCARDLIB_STATUS_NOT_PRESENT) {
-    	SDCardLib_unInit(&sdCardLib);
-    	mode = '0';
-    	noSDCard = 1;
-    	return;
-    }
-
-    // Construct log file's name
-    numLogFilesTemp = __data20_read_short((unsigned long int)numLogFiles);
-	if (numLogFilesTemp == 0){
-		numLogFilesTemp++;
-		__data20_write_short((unsigned long int)numLogFiles, numLogFilesTemp);
-	}
-    strcpy(filename, "data_log/log_");
-    char num[5];
-    itoa(numLogFilesTemp, num, 10);
-    strcat(filename, num);
-    strcat(filename, ".txt");
-
-    uint16_t numData = 0;
-
-    rc = f_open(&fil, filename, FA_READ | FA_OPEN_EXISTING);
-    if (rc) {
-    	numData = 0;
-    }
-    else {
-		f_gets(buffer, MAX_BUF_SIZE, &fil);
-		f_gets(buffer, MAX_BUF_SIZE, &fil);
-		f_gets(buffer, MAX_BUF_SIZE, &fil);
-		f_gets(buffer, MAX_BUF_SIZE, &fil);
-		f_gets(buffer, MAX_BUF_SIZE, &fil);
-
-		while (f_gets(buffer, MAX_BUF_SIZE, &fil) != NULL)
-		{
-			numData++;
-		}
-    }
-
-    rc = f_close(&fil);
-
-	// Select UART TXD on P2.0
-    GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN0, GPIO_SECONDARY_MODULE_FUNCTION);
-
-    // Send FRAM Index
-    EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)((numData)>>8));
-    EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)(numData));
-
-    __delay_cycles(900000);
-
-    rc = f_open(&fil, filename, FA_READ | FA_OPEN_EXISTING);
-    if (rc) {
-    	f_close(&fil);
-    	SDCardLib_unInit(&sdCardLib);
-    	return;
-    }
-
-    f_gets(buffer, MAX_BUF_SIZE, &fil);
-    f_gets(buffer, MAX_BUF_SIZE, &fil);
-    f_gets(buffer, MAX_BUF_SIZE, &fil);
-    f_gets(buffer, MAX_BUF_SIZE, &fil);
-    f_gets(buffer, MAX_BUF_SIZE, &fil);
-
-    uint16_t i;
-    char *dataStr;
-    int data;
-
-    for (i=0;i<numData;i++)
-    {
-        // Reads TimeStamp from SDCard log file
-        f_gets(buffer, MAX_BUF_SIZE, &fil);
-        dataStr = strtok(buffer, " ");
-        data = atoi(dataStr);
-    	// Send logged Temperature Sensor ata
-    	EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)(data>>8));
-    	EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)(data));
-
-        dataStr = strtok(NULL, " ");
-        data = atoi(dataStr);
-    	// Send logged Battery Monitor data
-    	EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)(data>>8));
-    	EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)(data));
-    }
-
-    rc = f_close(&fil);
-    SDCardLib_unInit(&sdCardLib);
-
-    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
-
-    mode = '0';
-}
+//void sendDataSDCard()
+//{
+//	int numLogFilesTemp;
+//    //Plugin SDcard interface to SDCard lib
+//    SDCardLib_init(&sdCardLib, &sdIntf_MSP430FR5994LP);
+//
+//    //Detect SD card
+//    SDCardLib_Status st = SDCardLib_detectCard(&sdCardLib);
+//    if (st == SDCARDLIB_STATUS_NOT_PRESENT) {
+//    	SDCardLib_unInit(&sdCardLib);
+//    	mode = '0';
+//    	noSDCard = 1;
+//    	return;
+//    }
+//
+//    // Construct log file's name
+////    numLogFilesTemp = __data20_read_short((unsigned long int)numLogFiles);
+////	if (numLogFilesTemp == 0){
+////		numLogFilesTemp++;
+////		__data20_write_short((unsigned long int)numLogFiles, numLogFilesTemp);
+////	}
+//    strcpy(filename, "data_log/log_");
+//    char num[5];
+//    itoa(numLogFilesTemp, num, 10);
+//    strcat(filename, num);
+//    strcat(filename, ".txt");
+//
+//    uint16_t numData = 0;
+//
+//    rc = f_open(&fil, filename, FA_READ | FA_OPEN_EXISTING);
+//    if (rc) {
+//    	numData = 0;
+//    }
+//    else {
+//		f_gets(buffer, MAX_BUF_SIZE, &fil);
+//		f_gets(buffer, MAX_BUF_SIZE, &fil);
+//		f_gets(buffer, MAX_BUF_SIZE, &fil);
+//		f_gets(buffer, MAX_BUF_SIZE, &fil);
+//		f_gets(buffer, MAX_BUF_SIZE, &fil);
+//
+//		while (f_gets(buffer, MAX_BUF_SIZE, &fil) != NULL)
+//		{
+//			numData++;
+//		}
+//    }
+//
+//    rc = f_close(&fil);
+//
+//	// Select UART TXD on P2.0
+//    GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN0, GPIO_SECONDARY_MODULE_FUNCTION);
+//
+//    // Send FRAM Index
+//    EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)((numData)>>8));
+//    EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)(numData));
+//
+//    __delay_cycles(900000);
+//
+//    rc = f_open(&fil, filename, FA_READ | FA_OPEN_EXISTING);
+//    if (rc) {
+//    	f_close(&fil);
+//    	SDCardLib_unInit(&sdCardLib);
+//    	return;
+//    }
+//
+//    f_gets(buffer, MAX_BUF_SIZE, &fil);
+//    f_gets(buffer, MAX_BUF_SIZE, &fil);
+//    f_gets(buffer, MAX_BUF_SIZE, &fil);
+//    f_gets(buffer, MAX_BUF_SIZE, &fil);
+//    f_gets(buffer, MAX_BUF_SIZE, &fil);
+//
+//    uint16_t i;
+//    char *dataStr;
+//    int data;
+//
+//    for (i=0;i<numData;i++)
+//    {
+//        // Reads TimeStamp from SDCard log file
+//        f_gets(buffer, MAX_BUF_SIZE, &fil);
+//        dataStr = strtok(buffer, " ");
+//        data = atoi(dataStr);
+//    	// Send logged Temperature Sensor ata
+//    	EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)(data>>8));
+//    	EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)(data));
+//
+//        dataStr = strtok(NULL, " ");
+//        data = atoi(dataStr);
+//    	// Send logged Battery Monitor data
+//    	EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)(data>>8));
+//    	EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)(data));
+//    }
+//
+//    rc = f_close(&fil);
+//    SDCardLib_unInit(&sdCardLib);
+//
+//    GPIO_setOutputLowOnPin(GPIO_PORT_P2, GPIO_PIN0);
+//
+//    mode = '0';
+//}
 
 /*
  * Store TimeStamp from PC when logging starts to SDCard
  */
-void storeTimeStampSDCard()
+void storeTimeStampSDCard(unsigned short* numLogFiles)
 {
 	uint16_t bw = 0;
 //	FRESULT rc;
 
-    // Increment log file number
-	__data20_write_short((unsigned long int)numLogFiles, __data20_read_short((unsigned long int)numLogFiles) + 1);
-    LogFileNum = __data20_read_short((unsigned long int)numLogFiles);
+
+	LogFileNum = __data20_read_short((unsigned long int)numLogFiles) + 1;
+	__data20_write_short((unsigned long int)numLogFiles, LogFileNum);
+    //LogFileNum = __data20_read_short((unsigned long int)numLogFiles);
 
     //Configure SDCard CS pin
     GPIO_setOutputHighOnPin(GPIO_PORT_P5, BIT7);
@@ -660,21 +661,21 @@ void storeTimeStampSDCard()
     	return;
     }
 
-    //Read directory and file
-    rc = SDCardLib_getDirectory(&sdCardLib, "data_log", dirs, &dirNum, files, &fileNum);
-
-    //Create the directory under the root directory
-    rc = SDCardLib_createDirectory(&sdCardLib, "data_log");
-    if (rc != FR_OK && rc != FR_EXIST) {
-    	SDCardLib_unInit(&sdCardLib);
-    	mode = '0';
-    	return;
-    }
+//    //Read directory and file
+//    rc = SDCardLib_getDirectory(&sdCardLib, "data_log", dirs, &dirNum, files, &fileNum);
+//
+//    //Create the directory under the root directory
+//    rc = SDCardLib_createDirectory(&sdCardLib, "data_log");
+//    if (rc != FR_OK && rc != FR_EXIST) {
+//    	SDCardLib_unInit(&sdCardLib);
+//    	mode = '0';
+//    	return;
+//    }
 
     char * temp = "SDCard Logging Start Time:\r\n";
 
     // Construct log file's name
-    strcpy(filename, "data_log/log_");
+    strcpy(filename, "log_");
     char num[5];
     itoa(LogFileNum, num, 10);
     strcat(filename, num);
@@ -707,14 +708,14 @@ void storeTimeStampSDCard()
 }
 
 
-void SDCardNewFile()
+void SDCardNewFile(unsigned short* numLogFiles)
 {
 	uint16_t bw = 0;
 //	FRESULT rc;
 
-	// Increment log file number
-	__data20_write_short((unsigned long int)numLogFiles, __data20_read_short((unsigned long int)numLogFiles) + 1);
-	LogFileNum = __data20_read_short((unsigned long int)numLogFiles);
+	LogFileNum = __data20_read_short((unsigned long int)numLogFiles) + 1;
+	__data20_write_short((unsigned long int)numLogFiles,LogFileNum);
+	//LogFileNum = __data20_read_short((unsigned long int)numLogFiles);
 
     //Configure SDCard CS pin
     GPIO_setOutputHighOnPin(GPIO_PORT_P5, BIT7);
@@ -732,7 +733,7 @@ void SDCardNewFile()
     }
 
     //Read directory and file
-    rc = SDCardLib_getDirectory(&sdCardLib, "data_log", dirs, &dirNum, files, &fileNum);
+    //rc = SDCardLib_getDirectory(&sdCardLib, "data_log", dirs, &dirNum, files, &fileNum);
 
 //    //Create the directory under the root directory
 //    rc = SDCardLib_createDirectory(&sdCardLib, "data_log");
@@ -745,7 +746,7 @@ void SDCardNewFile()
     char * temp = "SDCard Logging Start Time:\r\n";
 
     // Construct log file's name
-    strcpy(filename, "data_log/log_");
+    strcpy(filename, "log_");
     char num[5];
     itoa(LogFileNum, num, 10);
     strcat(filename, num);
