@@ -38,7 +38,7 @@
 
 // Other defines
 #define REGISTER_LENGTH					2 // Number of bytes in a register
-#define SENSOR_DATA_SIZE                2 // Number of bytes to sensor data
+#define SENSOR_DATA_SIZE                3 // Number of bytes to sensor data
 
 // Functions
 extern bool presMs5607Reset(void);
@@ -49,5 +49,6 @@ extern bool presMs5607ReadPromC3(uint16_t *TCS);
 extern bool presMs5607ReadPromC4(uint16_t *TCO);
 extern bool presMs5607ReadPromC5(uint16_t *T_REF);
 extern bool presMs5607ReadPromC6(uint16_t *TEMPSENS);
+extern bool presMs5607ReadData(signed long *adc_pressure, signed long *adc_temperature);
 
 #endif /* PRES_MS5607_H */
