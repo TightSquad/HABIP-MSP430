@@ -101,6 +101,7 @@ int main(void)
     WDTCTL = WDTPW | WDTHOLD;               // Stop Watchdog
 
 // Configure GPIO
+    config_DS4_LED(); // heartbeat
     config_UART_GPIO(0);
     config_UART_GPIO(1);
     config_UART_GPIO(2);
@@ -139,6 +140,7 @@ int main(void)
 // Begin Main Code
 while(1){
 	P1OUT ^= BIT2;
+	toggle_heartbeat();
 	__bis_SR_register(LPM0_bits); // Enter LPM0
 	__no_operation();
 	if(spi_slv_fsm_state == PARSING_COMMAND){

@@ -23,6 +23,10 @@ void config_DS4_LED(void){
             GPIO_PORT_P1,
             GPIO_PIN0
             );
+    GPIO_setOutputLowOnPin(
+    		GPIO_PORT_P1,
+			GPIO_PIN0
+			);
     activate_GPIO_config();
 }
 void Toggle_ON_OFF_DS4_LED(void){

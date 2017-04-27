@@ -87,6 +87,8 @@
 #define grab_all_daqcs(sns) SPI_command_host_to_slave("{00:B4:"Q_##sns"}",&spi_mst_readDoneFG);\
   parse_response(spi_mst_read_message);\
 
+#define toggle_heartbeat() GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
+
 int get_colon_count(const char* s);
 void rmv_start_end_chars(char* s);
 void store_response_val(int brd_num, char* sns, char* val);
