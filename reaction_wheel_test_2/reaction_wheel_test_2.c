@@ -1,6 +1,6 @@
 /*******************************************************************************
  *
- * First closed loop control of reaction wheel
+ * main.c
  *
  ******************************************************************************/
 
@@ -21,14 +21,17 @@ Calendar calendar;                                // Calendar used for RTC
 
 Calendar currTime;
 
-int NumLoggedDataRows = 25000;
+//int NumLoggedDataRows = 25000;
+int NumLoggedDataRows = 5000;
 
 unsigned char count = 0;
 unsigned long data;
 
 
 #pragma PERSISTENT(fram_data)
-unsigned short fram_data[0x10000] = {0};
+unsigned short fram_data[0x186A2] = {0};
+#pragma NOINIT(numLogFiles)
+unsigned short numLogFiles;
 
 void Init_GPIO(void);
 void Init_Clock(void);
@@ -68,30 +71,36 @@ int main(void) {
     Init_Clock();
 
     // create the folder on SD card
-    storeTimeStampSDCard();
+    storeTimeStampSDCard(&numLogFiles);
 
 	int log_num = 0;
+	int num_file = 0;
 	int blink_count = 0;
-	char time_sec[8];
-	char curr_ms[8];
-	int curr_sec;
-	signed short z_gyro_data;
+
+	char hour_min_char[8];
+	char sec_ms_char[8];
+
+	uint16_t curr_sec_ms;
+	uint16_t rtc_ms;
+	uint16_t curr_sec;
+
+	uint16_t curr_hour_min;
+	uint16_t curr_min;
+	uint16_t curr_hour;
+
+
 	char z_gyro_char[8];
 	char adc_char[8];
 	int current_adc_val;
-	long rtc_ms;
+
 
 	long row = 0;
 
-	//imu stuff
-	double z_gyro_rpm;
-	double z_gyro_ema;
-
 	//motor control variables
 	int motor_duty_cycle = 2000;
-	int second_counter = 0;
-	int period_counter = 0;
-	int high_speed = 1;
+	double z_gyro_data;
+	signed int z_gyro_raw;
+	double z_gyro_rpm;
 
 	//start the RTC
 	Init_RTC();
@@ -110,127 +119,124 @@ int main(void) {
 	motorSpeed(motor_duty_cycle);
 	motorON();
 
-	while (log_num < NumLoggedDataRows) {
-		//initialze the SPI
-		setup_IMU_SPI();
+	while (num_file < 3){
 
-		// grab IMU data
-		z_gyro_data = read_IMU_SPI(ZGYRO);
+		motorON();
 
-		// exponential moving average of IMU_rpm data
-		z_gyro_ema = EMA(IMUtoRPM(z_gyro_data), z_gyro_ema);
+		while (log_num < NumLoggedDataRows) {
+			//initialze the SPI
+			setup_IMU_SPI();
 
-		//store in an array to plot later
-		__data20_write_short((unsigned long int)fram_data + row + 4, (int)z_gyro_ema);
+			// grab IMU data
+//			z_gyro_data = (signed short)EMA((double)read_IMU_SPI(ZGYRO), (double)z_gyro_data);
+			z_gyro_raw = read_IMU_SPI(ZGYRO);
+			z_gyro_data = EMA((double)z_gyro_raw, (double)z_gyro_data);
 
-		//capture current ADC value
-		current_adc_val = readADC();
-		__data20_write_short((unsigned long int)fram_data + row + 6, current_adc_val);
+			// exponential moving average of IMU_rpm data
+			z_gyro_rpm = IMUtoRPM(z_gyro_data);
 
-		//speed up clock to 8MHz
-		Init_Clock();
+			//capture current ADC value
+			current_adc_val = readADC();
 
-		//grab RTC counter
-		rtc_ms =  RTCPS;
-		//convert RTC counter to ms
-		rtc_ms = (int)(((long)rtc_ms * 1000l)/32768l);
-		__data20_write_short((unsigned long int)fram_data + row + 2, rtc_ms);
+			//speed up clock to 8MHz
+			Init_Clock();
 
-		//get current time in seconds from RTC_C
-		currTime = RTC_C_getCalendarTime(RTC_C_BASE);
-		curr_sec = currTime.Seconds;
-		__data20_write_short((unsigned long int)fram_data + row, curr_sec);
+			//get current time in seconds from RTC_C
+			currTime = RTC_C_getCalendarTime(RTC_C_BASE);
+			curr_hour = (uint16_t)currTime.Hours;
+			curr_min = (uint16_t)currTime.Minutes;
+			curr_sec = (uint16_t)currTime.Seconds;
 
-		//motor control stuff
-		if(z_gyro_data > 80){
-			motorON();
-			motorCCW();
-			motorRPM(250 * z_gyro_ema);
-		}
-		else if (z_gyro_data < -80){
-			motorON();
-			motorCW();
-			motorRPM(-250  * z_gyro_ema);
-		}
-		else{
-			motorRPM(0);
-			motorOFF();
-		}
+			//grab RTC counter
+			rtc_ms =  RTCPS;
+
+			// convert rtcps to ms
+			rtc_ms = (uint16_t)(((long)rtc_ms * 500l)/32768l);
+
+			// concatenate seconds/ms and hour/min
+			curr_sec_ms = (curr_sec << 10) | rtc_ms;
+			curr_hour_min = (curr_hour << 8) | curr_min;
+
+			// write the data to FRAM
+			__data20_write_short((unsigned long int)fram_data + row, curr_hour_min);
+			__data20_write_short((unsigned long int)fram_data + row + 2, curr_sec_ms);
+			__data20_write_short((unsigned long int)fram_data + row + 4, z_gyro_raw);
+			__data20_write_short((unsigned long int)fram_data + row + 6, current_adc_val);
 
 
-//		if (second_counter < (int)curr_sec){
-//			period_counter++;
-//			if (period_counter == 10){
-//				if (high_speed == 1){
-//					motor_duty_cycle = 18000;
-//					motorSpeed(motor_duty_cycle);
-//					period_counter = 0;
-//					high_speed = 0;
-//				}
-//				else {
-//					motor_duty_cycle = 2000;
-//					motorSpeed(motor_duty_cycle);
-//					period_counter = 0;
-//					high_speed = 1;
-//				}
-//			}
-//			second_counter = (int)curr_sec;
-//		}
-//
-//		//after a minute need to reset the second_counter back to 0
-//		if ((int)curr_sec == 0){
-//			second_counter = 0;
-//		}
+			//motor control stuff
+			if(z_gyro_rpm > 2){
+				motorON();
+				motorCW();
+				motorRPM(375 * z_gyro_rpm);
+			}
+			else if (z_gyro_rpm < -2){
+				motorON();
+				motorCCW();
+				motorRPM(-375  * z_gyro_rpm);
+			}
+			else{
+				motorRPM(0);
+				motorOFF();
+			}
 
-		//blink every 100 samples captured
-		if (blink_count == 100){
-			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN1);
-			blink_count = 0;
+
+			//blink every 100 samples captured
+			if (blink_count == 100){
+				GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
+				GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN1);
+				blink_count = 0;
+			}
+
+			log_num++;
+			row = row + 8;
+			blink_count++;
+
+			__delay_cycles(32000);
 		}
 
-		log_num++;
-		row = row + 8;
-		blink_count++;
+		//slow down and stop the motor
+		motorRampDown();
+		motorOFF();
 
-		__delay_cycles(32000);
+		//Open txt file
+		SDFindOpenNewFile();
+
+		//reset counter variables
+		row = 0;
+		blink_count = 0;
+		log_num = 0;
+
+		//start data logging
+		for(log_num = 0; log_num < NumLoggedDataRows; log_num++){
+			//read from FRAM2 and convert int to char string
+			itoa(__data20_read_short((unsigned long int)fram_data + row), hour_min_char, 16);
+			itoa(__data20_read_short((unsigned long int)fram_data+ row + 2), sec_ms_char, 16);
+			itoa(__data20_read_short((unsigned long int)fram_data+ row + 4), z_gyro_char, 10);
+			itoa(__data20_read_short((unsigned long int)fram_data+ row + 6), adc_char, 10);
+
+			row = row + 8;
+
+			//write all data to a single line in the currently open txt file
+			writeDataSameLine_4(hour_min_char, sec_ms_char, z_gyro_char, adc_char);
+
+			//keep track when to give status blink
+			blink_count++;
+			if (blink_count == 100){
+				GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
+				blink_count = 0;
+			}
+		}
+
+		//close the currently open txt file
+		SDCloseSPI();
+
+		row = 0;
+		log_num = 0;
+		num_file++;
+		 // create new file to save data
+		SDCardNewFile(&numLogFiles);
 	}
-
-	//slow down and stop the motor
-	motorRampDown();
-	motorOFF();
-
-	//Open txt file
-	SDFindOpenNewFile();
-
-	//reset counter variables
-	row = 0;
-	blink_count = 0;
-	log_num = 0;
-
-	//start data logging
-	for(log_num = 0; log_num < NumLoggedDataRows; log_num++){
-		//read from FRAM2 and convert int to char string
-		itoa(__data20_read_short((unsigned long int)fram_data + row), time_sec, 10);
-		itoa(__data20_read_short((unsigned long int)fram_data+ row + 2), curr_ms, 10);
-		itoa(__data20_read_short((unsigned long int)fram_data+ row + 4), z_gyro_char, 10);
-		itoa(__data20_read_short((unsigned long int)fram_data+ row + 6), adc_char, 10);
-
-		row = row + 8;
-
-		//write all data to a single line in the currently open txt file
-		writeDataSameLine_4(time_sec, curr_ms, z_gyro_char, adc_char);
-
-		//keep track when to give status blink
-		blink_count++;
-		if (blink_count == 100){
-			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
-			blink_count = 0;
-		}
-	}
-
-	//close the currently open txt file
-	SDCloseSPI();
 
 	GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
 	GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
@@ -308,7 +314,7 @@ void Init_RTC()
     //Setup Current Time for Calendar
     calendar.Seconds    = 0x00;
     calendar.Minutes    = 0x00;
-    calendar.Hours      = 0x02;
+    calendar.Hours      = 0x00;
     calendar.DayOfWeek  = 0x06;
     calendar.DayOfMonth = 0x11;
     calendar.Month      = 0x04;

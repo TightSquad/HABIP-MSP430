@@ -136,14 +136,14 @@ int main(void) {
 			//speed up clock to 8MHz
 			Init_Clock();
 
-			//grab RTC counter
-			rtc_ms =  RTCPS;
-
 			//get current time in seconds from RTC_C
 			currTime = RTC_C_getCalendarTime(RTC_C_BASE);
-			curr_sec = (uint16_t)currTime.Seconds;
-			curr_min = (uint16_t)currTime.Minutes;
 			curr_hour = (uint16_t)currTime.Hours;
+			curr_min = (uint16_t)currTime.Minutes;
+			curr_sec = (uint16_t)currTime.Seconds;
+
+			//grab RTC counter
+			rtc_ms =  RTCPS;
 
 			// convert rtcps to ms
 			rtc_ms = (uint16_t)(((long)rtc_ms * 500l)/32768l);

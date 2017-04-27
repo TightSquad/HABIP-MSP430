@@ -14,7 +14,7 @@
 void write_IMU_SPI(unsigned int register_address, unsigned char date_write);
 int read_IMU_SPI(unsigned char register_address);
 void setup_IMU_SPI(void);
-double IMUtoRPM(double imu_value);
+double IMUtoRPM(int imu_value);
 double EMA(double new_sample, double ma_old);
 
 
