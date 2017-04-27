@@ -40,6 +40,9 @@
 #define REGISTER_LENGTH					2 // Number of bytes in a register
 #define SENSOR_DATA_SIZE                3 // Number of bytes to sensor data
 
+// Set to 1 for additional compensation for more accurate results
+#define ADDITIONAL_COMPENSATION			0 // Off by default to save on processing
+
 // Functions
 extern bool presMs5607Reset(void);
 extern bool presMs5607ReadProm(uint8_t ui8Reg);
