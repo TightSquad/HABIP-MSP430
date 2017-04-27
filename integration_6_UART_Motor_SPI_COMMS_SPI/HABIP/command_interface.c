@@ -19,6 +19,8 @@ char response_status_b4[DAQCS_SENSOR_CNT] = {{OLD}};
 
 char respond_all_data_msg[1024] = {};
 
+char val_b4[10];
+
 extern volatile int spi_slv_fsm_state;
 extern volatile int spi_mst_readDoneFG;
 extern volatile int spi_mst_sendDoneFG;
@@ -236,6 +238,75 @@ void read_response_val(int brd_num, char* sns, char** val){
 		// error msg?
 	}
 }
+void read_response_val_b4(char* sns, char* val){
+	if(strcmp(sns,"TB0")==0){
+		response_status_b4[DQ_TB0] = OLD;
+		strcpy(val,response_buffer_b4[DQ_TB0]);
+	}
+	else if(strcmp(sns,"P0")==0){
+		response_status_b4[DQ_P0] = OLD;
+		strcpy(val,response_buffer_b4[DQ_P0]);
+	}
+	else if(strcmp(sns,"PB")==0){
+		response_status_b4[DQ_PB] = OLD;
+		strcpy(val,response_buffer_b4[DQ_PB]);
+	}
+	else if(strcmp(sns,"V")==0){
+		response_status_b4[DQ_V] = OLD;
+		strcpy(val,response_buffer_b4[DQ_V]);
+	}
+	else if(strcmp(sns,"C")==0){
+		response_status_b4[DQ_C] = OLD;
+		strcpy(val,response_buffer_b4[DQ_C]);
+	}
+	else if(strcmp(sns,"XGY")==0){
+		response_status_b4[DQ_XGY] = OLD;
+		strcpy(val,response_buffer_b4[DQ_XGY]);
+	}
+	else if(strcmp(sns,"XAC")==0){
+		response_status_b4[DQ_XAC] = OLD;
+		strcpy(val,response_buffer_b4[DQ_XAC]);
+	}
+	else if(strcmp(sns,"YGY")==0){
+		response_status_b4[DQ_YGY] = OLD;
+		strcpy(val,response_buffer_b4[DQ_YGY]);
+	}
+	else if(strcmp(sns,"YAC")==0){
+		response_status_b4[DQ_YAC] = OLD;
+		strcpy(val,response_buffer_b4[DQ_YAC]);
+	}
+	else if(strcmp(sns,"ZGY")==0){
+		response_status_b4[DQ_ZGY] = OLD;
+		strcpy(val,response_buffer_b4[DQ_ZGY]);
+	}
+	else if(strcmp(sns,"ZAC")==0){
+		response_status_b4[DQ_ZAC] = OLD;
+		strcpy(val,response_buffer_b4[DQ_ZAC]);
+	}
+	else if(strcmp(sns,"MS")==0){
+		response_status_b4[DQ_MS] = OLD;
+		strcpy(val,response_buffer_b4[DQ_MS]);
+	}
+	else if(strcmp(sns,"MC")==0){
+		response_status_b4[DQ_MC] = OLD;
+		strcpy(val,response_buffer_b4[DQ_MC]);
+	}
+	else if(strcmp(sns,"MV")==0){
+		response_status_b4[DQ_MV] = OLD;
+		strcpy(val,response_buffer_b4[DQ_MV]);
+	}
+	else if(strcmp(sns,"MD")==0){
+		response_status_b4[DQ_MD] = OLD;
+		strcpy(val,response_buffer_b4[DQ_MD]);
+	}
+	else if(strcmp(sns,"ME")==0){
+		response_status_b4[DQ_ME] = OLD;
+		strcpy(val,response_buffer_b4[DQ_ME]);
+	}
+	else {
+		// error msg?
+	}
+}
 // TODO: initializing low for GPIO for cutdown and board resets.
 void store_response_val(int brd_num,char* sns, char*val){
 	if(!((brd_num>=0)&&(brd_num<=4))){
@@ -371,8 +442,10 @@ void parse_response(char* msg){
 		// Insert specific code for handling 2 colon commands or call fnc
 		two_colon_extract(msg_copy,&resp_brd,&resp_sns,&resp_val);
 		// TODO: LP future can do error checking for making sure valid msg
-		if(strcmp(resp_brd,"B0")==0){
-			store_response_val(0, resp_sns, resp_val);
+		if(strcmp(resp_brd,"B4")==0){
+			if(resp_val){
+				store_response_val(4, resp_sns, resp_val);
+			}
 		}
 		else if(strcmp(resp_brd,"B1")==0){
 			store_response_val(1, resp_sns, resp_val);
@@ -383,8 +456,8 @@ void parse_response(char* msg){
 		else if(strcmp(resp_brd,"B3")==0){
 			store_response_val(3, resp_sns, resp_val);
 		}
-		else if(strcmp(resp_brd,"B4")==0){
-			store_response_val(4, resp_sns, resp_val);
+		else if(strcmp(resp_brd,"B0")==0){
+			store_response_val(0, resp_sns, resp_val);
 		}
 		else {
 			// error msg?
@@ -403,7 +476,9 @@ void parse_response_pi_hat(int brd_num, char* msg){
 	int count = get_colon_count(msg_copy);
 	if (count == 1){
 		one_colon_extract(msg_copy,&resp_sns,&resp_val);
-		store_response_val(brd_num, resp_sns, resp_val);
+		if(resp_val){
+			store_response_val(brd_num, resp_sns, resp_val);
+		}
 	}
 	else {
 		// error msg
@@ -529,6 +604,68 @@ void parse_cmd_from_comms(char* msg){
 			default: break;
 		}
 }
+void parse_cmd_from_host(char* msg){
+	char msg_copy[MSG_LEN] = {};
+	char* host2_cmd = "";
+	char* host2_val = "";
+	char* host3_cmd = "";
+	char* host3_brd = "";
+	char* host3_sns = "";
+	strcpy(msg_copy,msg);
+	rmv_start_end_chars(msg_copy);
+	int count = get_colon_count(msg_copy);
+	switch(count)
+		{
+			case 0:
+				if(strcmp(msg_copy,"01")==0){
+					// Support this? TODO: LP
+
+				}
+				else {
+					// error msg?
+				}
+				break;
+			case 1:
+				// Insert specific code for handling 1 colon commands or call fnc
+				one_colon_extract(msg_copy,&host2_cmd,&host2_val);
+				if(strcmp(host2_cmd,"03")==0){
+					// Insert Reaction wheel cmd TODO:
+
+					spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+				}
+				else if(strcmp(host2_cmd,"04")==0){
+					// Insert Reaction wheel cmd TODO:
+
+					spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+				}
+				else if(strcmp(host2_cmd,"06")==0){
+					// Insert Time Sync CMD TODO:
+
+					spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+				}
+				else {
+					// error msg?
+				}
+				break;
+			case 2:
+				// Insert specific code for handling 2 colon commands or call fnc
+				two_colon_extract(msg_copy,&host3_cmd,&host3_brd,&host3_sns);
+				if(strcmp(host3_brd,"B4")==0){
+					spi_slv_fsm_state = OBTAINING_DATA;
+//					read_response_val(4, host3_sns, &resp_val);val_b4
+//					create_host_response(host3_sns,resp_val);
+					read_response_val_b4(host3_sns,val_b4);
+					create_host_response(host3_sns,val_b4);
+					spi_slv_fsm_state = RESPONDING_WITH_DATA;
+				}
+				else {
+					// error msg?
+				}
+				break;
+
+			default: break;
+		}
+}
 void create_comms_response(char* brd, char* sns, char* val){
 	char spi_send_msg_temp[MSG_LEN] = {};
 	strcpy(spi_send_msg_temp,"{");
@@ -540,6 +677,17 @@ void create_comms_response(char* brd, char* sns, char* val){
 	strcat(spi_send_msg_temp,"}");
 	strcpy(spi_slv_send_message,spi_send_msg_temp);
 }
+
+void create_host_response(char* sns, char* val){
+	char spi_send_msg_temp[MSG_LEN] = {};
+	strcpy(spi_send_msg_temp,"{B4:");
+	strcat(spi_send_msg_temp,sns);
+	strcat(spi_send_msg_temp,":");
+	strcat(spi_send_msg_temp,val);
+	strcat(spi_send_msg_temp,"}");
+	strcpy(spi_slv_send_message,spi_send_msg_temp);
+}
+
 void one_colon_extract(char* msg, char** first, char** second){
 	*first = strtok(msg,":");
 	*second = strtok(NULL,":");

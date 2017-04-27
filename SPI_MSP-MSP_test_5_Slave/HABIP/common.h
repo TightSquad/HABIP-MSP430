@@ -13,6 +13,7 @@ void activate_GPIO_config(void);
 void config_DS4_LED(void);
 void Toggle_ON_OFF_DS4_LED(void);
 void delay_LED(void);
+double EMA(double new_sample, double ma_old);
 
 // Constants
 #define START_CHAR 0x7B

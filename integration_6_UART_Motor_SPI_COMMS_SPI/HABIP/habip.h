@@ -10,6 +10,7 @@
 
 //#define MSG_LEN 64 // Default for now
 
+#include "battery.h"
 #include "clocks.h"
 #include "common.h"
 #include "command_interface.h"

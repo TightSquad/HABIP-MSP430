@@ -442,8 +442,10 @@ void parse_response(char* msg){
 		// Insert specific code for handling 2 colon commands or call fnc
 		two_colon_extract(msg_copy,&resp_brd,&resp_sns,&resp_val);
 		// TODO: LP future can do error checking for making sure valid msg
-		if(strcmp(resp_brd,"B0")==0){
-			store_response_val(0, resp_sns, resp_val);
+		if(strcmp(resp_brd,"B4")==0){
+			if(resp_val){
+				store_response_val(4, resp_sns, resp_val);
+			}
 		}
 		else if(strcmp(resp_brd,"B1")==0){
 			store_response_val(1, resp_sns, resp_val);
@@ -454,8 +456,8 @@ void parse_response(char* msg){
 		else if(strcmp(resp_brd,"B3")==0){
 			store_response_val(3, resp_sns, resp_val);
 		}
-		else if(strcmp(resp_brd,"B4")==0){
-			store_response_val(4, resp_sns, resp_val);
+		else if(strcmp(resp_brd,"B0")==0){
+			store_response_val(0, resp_sns, resp_val);
 		}
 		else {
 			// error msg?
@@ -474,7 +476,9 @@ void parse_response_pi_hat(int brd_num, char* msg){
 	int count = get_colon_count(msg_copy);
 	if (count == 1){
 		one_colon_extract(msg_copy,&resp_sns,&resp_val);
-		store_response_val(brd_num, resp_sns, resp_val);
+		if(resp_val){
+			store_response_val(brd_num, resp_sns, resp_val);
+		}
 	}
 	else {
 		// error msg
@@ -607,7 +611,6 @@ void parse_cmd_from_host(char* msg){
 	char* host3_cmd = "";
 	char* host3_brd = "";
 	char* host3_sns = "";
-	char* resp_val = "";
 	strcpy(msg_copy,msg);
 	rmv_start_end_chars(msg_copy);
 	int count = get_colon_count(msg_copy);
