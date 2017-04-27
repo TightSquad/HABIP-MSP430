@@ -121,6 +121,8 @@ int main(void) {
 
 	while (num_file < 3){
 
+		motorON();
+
 		while (log_num < NumLoggedDataRows) {
 			//initialze the SPI
 			setup_IMU_SPI();
@@ -162,13 +164,13 @@ int main(void) {
 				period_counter++;
 				if (period_counter == 10){
 					if (high_speed == 1){
-						motor_duty_cycle = 18000;
+						motor_duty_cycle = 8000;
 						motorSpeed(motor_duty_cycle);
 						period_counter = 0;
 						high_speed = 0;
 					}
 					else {
-						motor_duty_cycle = 2000;
+						motor_duty_cycle = 18000;
 						motorSpeed(motor_duty_cycle);
 						period_counter = 0;
 						high_speed = 1;
