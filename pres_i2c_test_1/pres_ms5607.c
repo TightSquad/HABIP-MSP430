@@ -122,11 +122,11 @@ bool presMs5607ReadData(signed long *adc_pressure, signed long *adc_temperature)
 	bool success;
 
 	// Trigger D1 (digital pressure value) conversion
-	success = writeI2C(PRES_MS5607_I2C_ADDRESS, PRES_MS5607_REG_CONV_D1_4096, 0x00, 1);
+	success = writeI2C(PRES_MS5607_I2C_ADDRESS, PRES_MS5607_REG_CONV_D1_256, 0x00, 1);
 	if (!success){
 		// sensorSetErrorData
 	}
-	__delay_cycles(80000); // Cycles at 8MHz to wait longer than max ADC conversion time (9.04ms for OSR=4096) or data will be corrupt
+	__delay_cycles(4800); // Cycles at 8MHz to wait longer than max ADC conversion time (0.60ms for OSR=256) or data will be corrupt
 
 	// Read the 24-bit (3 byte) ADC pressure result
 	success = readI2C(PRES_MS5607_I2C_ADDRESS, PRES_MS5607_REG_ADC_READ, &buf[0], SENSOR_DATA_SIZE);
@@ -138,11 +138,11 @@ bool presMs5607ReadData(signed long *adc_pressure, signed long *adc_temperature)
 	*adc_pressure = ((signed long)buf[0] << 16) | ((signed long)buf[1] << 8) | ((signed long)buf[2]);
 
 	// Trigger D2 (digital temperature value) conversion
-	success = writeI2C(PRES_MS5607_I2C_ADDRESS, PRES_MS5607_REG_CONV_D2_4096, 0x00, 1);
+	success = writeI2C(PRES_MS5607_I2C_ADDRESS, PRES_MS5607_REG_CONV_D2_256, 0x00, 1);
 	if (!success){
 		// sensorSetErrorData
 	}
-	__delay_cycles(80000); // Cycles at 8MHz to wait longer than max ADC conversion time (9.04ms for OSR=4096) or data will be corrupt
+	__delay_cycles(4800); // Cycles at 8MHz to wait longer than max ADC conversion time (0.60ms for OSR=256) or data will be corrupt
 
 	// Read the 24-bit (3 byte) ADC temperature result
 	success = readI2C(PRES_MS5607_I2C_ADDRESS, PRES_MS5607_REG_ADC_READ, &buf[0], SENSOR_DATA_SIZE);
