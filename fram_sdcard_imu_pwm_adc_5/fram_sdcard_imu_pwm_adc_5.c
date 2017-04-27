@@ -77,8 +77,8 @@ int main(void) {
 	int num_file = 0;
 	int blink_count = 0;
 
-	char time_sec[8];
-	char curr_ms[8];
+	char hour_min_char[8];
+	char sec_ms_char[8];
 
 	uint16_t curr_sec_ms;
 	uint16_t rtc_ms;
@@ -126,7 +126,7 @@ int main(void) {
 			setup_IMU_SPI();
 
 			// grab IMU data
-			z_gyro_data = read_IMU_SPI(ZGYRO);
+			z_gyro_data = (signed short)EMA((double)read_IMU_SPI(ZGYRO), (double)z_gyro_data);
 
 			//capture current ADC value
 			current_adc_val = readADC();
@@ -211,15 +211,15 @@ int main(void) {
 		//start data logging
 		for(log_num = 0; log_num < NumLoggedDataRows; log_num++){
 			//read from FRAM2 and convert int to char string
-			itoa(__data20_read_short((unsigned long int)fram_data + row), time_sec, 10);
-			itoa(__data20_read_short((unsigned long int)fram_data+ row + 2), curr_ms, 10);
+			itoa(__data20_read_short((unsigned long int)fram_data + row), hour_min_char, 16);
+			itoa(__data20_read_short((unsigned long int)fram_data+ row + 2), sec_ms_char, 16);
 			itoa(__data20_read_short((unsigned long int)fram_data+ row + 4), z_gyro_char, 10);
 			itoa(__data20_read_short((unsigned long int)fram_data+ row + 6), adc_char, 10);
 
 			row = row + 8;
 
 			//write all data to a single line in the currently open txt file
-			writeDataSameLine_4(time_sec, curr_ms, z_gyro_char, adc_char);
+			writeDataSameLine_4(hour_min_char, sec_ms_char, z_gyro_char, adc_char);
 
 			//keep track when to give status blink
 			blink_count++;

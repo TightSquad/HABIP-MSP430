@@ -363,9 +363,9 @@ void writeDataSameLine(char * data, char * data2,  char * data3){
 	//GPIO_setOutputHighOnPin(GPIO_PORT_P7, GPIO_PIN5);
 	f_puts(data, &fil);
 	//GPIO_setOutputLowOnPin(GPIO_PORT_P7, GPIO_PIN5);
-	f_puts(" : ", &fil);
+	f_puts(",", &fil);
 	f_puts(data2, &fil);
-	f_puts(" : ", &fil);
+	f_puts(",", &fil);
 	f_puts(data3, &fil);
 	f_puts("\r\n", &fil);
 
@@ -404,9 +404,9 @@ void writeDataSameLine_3(char * data, char * data2,  char * data3){
 	//GPIO_setOutputHighOnPin(GPIO_PORT_P7, GPIO_PIN5);
 	f_puts(data, &fil);
 	//GPIO_setOutputLowOnPin(GPIO_PORT_P7, GPIO_PIN5);
-	f_puts(" : ", &fil);
+	f_puts(",", &fil);
 	f_puts(data2, &fil);
-	f_puts(" : ", &fil);
+	f_puts(",", &fil);
 	f_puts(data3, &fil);
 	f_puts("\r\n", &fil);
 
@@ -427,11 +427,11 @@ void writeDataSameLine_4(char * data, char * data2,  char * data3, char * data4)
 	//GPIO_setOutputHighOnPin(GPIO_PORT_P7, GPIO_PIN5);
 	f_puts(data, &fil);
 	//GPIO_setOutputLowOnPin(GPIO_PORT_P7, GPIO_PIN5);
-	f_puts(" : ", &fil);
+	f_puts(",", &fil);
 	f_puts(data2, &fil);
-	f_puts(" : ", &fil);
+	f_puts(",", &fil);
 	f_puts(data3, &fil);
-	f_puts(" : ", &fil);
+	f_puts(",", &fil);
 	f_puts(data4, &fil);
 	f_puts("\r\n", &fil);
 
@@ -672,7 +672,8 @@ void storeTimeStampSDCard(unsigned short* numLogFiles)
 //    	return;
 //    }
 
-    char * temp = "SDCard Logging Start Time:\r\n";
+    //char * temp = "SDCard Logging Start Time:\r\n";
+    char * temp = "\r\n";
 
     // Construct log file's name
     strcpy(filename, "log_");
@@ -700,7 +701,7 @@ void storeTimeStampSDCard(unsigned short* numLogFiles)
 
     rc = f_lseek(&fil, f_size(&fil));
 //    f_puts(buffer, &fil);
-    f_puts("\r\n\r\n", &fil);
+    f_puts("\r\n", &fil);
     f_puts("Temperature and Voltage (12-bit ADC raw data):\r\n", &fil);
     rc = f_close(&fil);
 
@@ -744,6 +745,7 @@ void SDCardNewFile(unsigned short* numLogFiles)
 //    }
 
     char * temp = "SDCard Logging Start Time:\r\n";
+    //char * temp = "\r\n";
 
     // Construct log file's name
     strcpy(filename, "log_");
@@ -771,7 +773,7 @@ void SDCardNewFile(unsigned short* numLogFiles)
 
     rc = f_lseek(&fil, f_size(&fil));
 //    f_puts(buffer, &fil);
-    f_puts("\r\n\r\n", &fil);
+    f_puts("\r\n", &fil);
     f_puts("Temperature and Voltage (12-bit ADC raw data):\r\n", &fil);
     rc = f_close(&fil);
 
