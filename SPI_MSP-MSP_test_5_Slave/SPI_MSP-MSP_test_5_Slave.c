@@ -128,9 +128,6 @@ int main(void)
 
     __bis_SR_register(GIE);
 
-	int count = 0;
-	int cnt = 0;
-
       // Temp Fill with dummy values.
       store_response_val(4,"P0","1111");
       store_response_val(4,"PB","1112");
@@ -214,15 +211,15 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
                     }
                     TX_A0_SPI(spi_slv_tx_data);
                     break;
-                case RESPONDING_WITH_ALL_DATA:
-                    spi_slv_tx_data = respond_all_data_msg[spi_slv_write_index++];
-                    if(spi_slv_tx_data == '$'){
-                      spi_slv_fsm_state = LISTENING_FOR_COMMAND;
-                    }
-                    else {
-                        TX_A0_SPI(spi_slv_tx_data);
-                    }
-                    break;
+//                case RESPONDING_WITH_ALL_DATA:
+//                    spi_slv_tx_data = respond_all_data_msg[spi_slv_write_index++];
+//                    if(spi_slv_tx_data == '$'){
+//                      spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+//                    }
+//                    else {
+//                        TX_A0_SPI(spi_slv_tx_data);
+//                    }
+//                    break;
                 default:
 
                     break;

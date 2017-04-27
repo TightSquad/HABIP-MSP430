@@ -91,6 +91,7 @@ int get_colon_count(const char* s);
 void rmv_start_end_chars(char* s);
 void store_response_val(int brd_num, char* sns, char* val);
 void read_response_val(int brd_num, char* sns, char** val);
+void read_response_val_b4(char* sns, char* val);
 void parse_cmd_from_comms(char* msg);
 void parse_cmd_from_host(char* msg);
 void create_comms_response(char* brd, char* sns, char* val);
