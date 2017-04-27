@@ -394,6 +394,21 @@ void parse_response(char* msg){
 		// error msg
 	}
 }
+void parse_response_pi_hat(int brd_num, char* msg){
+	char msg_copy[MSG_LEN];
+	char* resp_sns = "";
+	char* resp_val = "";
+	strcpy(msg_copy,msg);
+	rmv_start_end_chars(msg_copy);
+	int count = get_colon_count(msg_copy);
+	if (count == 1){
+		one_colon_extract(msg_copy,&resp_sns,&resp_val);
+		store_response_val(brd_num, resp_sns, resp_val);
+	}
+	else {
+		// error msg
+	}
+}
 void parse_cmd_from_comms(char* msg){
 	char msg_copy[MSG_LEN] = {};
 	char* comms2_cmd = "";
