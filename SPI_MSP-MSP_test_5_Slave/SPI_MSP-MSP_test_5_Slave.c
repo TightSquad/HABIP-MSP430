@@ -92,22 +92,6 @@ extern volatile int spi_slv_write_index;
 extern volatile int spi_slv_read_index;
 extern volatile char spi_slv_tx_data;
 
-char* sensor_responses[DAQCS_SENSOR_CNT] = {"{B4:TB0:1110}",
-							"{B4:P0:1111}",
-							"{B4:PB:1112}",
-							"{B4:V:1113}",
-							"{B4:C:1114}",
-							"{B4:XGY:1115}",
-							"{B4:XAC:1116}",
-							"{B4:YGY:1117}",
-							"{B4:YAC:1118}",
-							"{B4:ZGY:1119}",
-							"{B4:ZAC:1120}",
-							"{B4:MS:1121}",
-							"{B4:MC:1122}",
-							"{B4:MV:1123}",
-							"{B4:MD:1124}",
-							"{B4:ME:1125}"
 
 };
 int main(void)
@@ -129,20 +113,20 @@ int main(void)
     __bis_SR_register(GIE);
 
       // Temp Fill with dummy values.
-      store_response_val(4,"P0","1111");
-      store_response_val(4,"PB","1112");
-      store_response_val(4,"V","1113");
-      store_response_val(4,"C","1114");
+      store_response_val(4,"P0","1111"); // pressure on board
+      store_response_val(4,"PB","1112"); // pressure on balloon
+      store_response_val(4,"V","1113"); // board voltage
+      store_response_val(4,"C","1114"); // board current
       store_response_val(4,"XGY","1115");
       store_response_val(4,"XAC","1116");
       store_response_val(4,"YGY","1117");
       store_response_val(4,"YAC","1118");
       store_response_val(4,"ZGY","1119");
       store_response_val(4,"ZAC","1120");
-      store_response_val(4,"MS","1121");
-      store_response_val(4,"MC","1122");
-      store_response_val(4,"MD","1124");
-      store_response_val(4,"ME","1125");
+      store_response_val(4,"MS","1121"); //motor speed
+      store_response_val(4,"MC","1122"); //motor current
+      store_response_val(4,"MD","1124"); //motor direction
+      store_response_val(4,"ME","1125"); //motor enable/status
 
 // Begin Main Code
 	while(1){

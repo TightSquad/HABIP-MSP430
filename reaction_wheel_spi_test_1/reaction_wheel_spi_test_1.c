@@ -102,19 +102,10 @@ int main(void) {
 	signed int z_gyro_raw;
 	double z_gyro_rpm;
 
-	double kp = 100;
-	double ki = 5;
-	double kd = 50;
-	double error;
-	double integral;
-	double derivative;
-	double control_speed;
-	double last_error;
-
 	//start the RTC
 	Init_RTC();
 
-	//__delay_cycles(2000);
+	__delay_cycles(2000);
 
 	// setup the pins and timers for the motor control
 	setupMotor();
@@ -174,42 +165,15 @@ int main(void) {
 
 
 			//motor control stuff
-//			if(z_gyro_rpm > 1){
-//				motorON();
-//				motorCW();
-//				motorRPM(80 * z_gyro_rpm * z_gyro_rpm);
-//			}
-//			else if (z_gyro_rpm < -1){
-//				motorON();
-//				motorCCW();
-//				motorRPM(80  * z_gyro_rpm * z_gyro_rpm);
-//			}
-//			else{
-//				motorRPM(0);
-//				motorOFF();
-//			}
-
-
-			error = z_gyro_rpm;
-
-//			integral = integral + error;
-
-			derivative = error  - last_error;
-
-//			control_speed = (kp * error) + (ki * integral) + (kd * derivative);
-			control_speed = (kp * error) + (kd * derivative);
-
-			last_error = error;
-
-			if(control_speed > 1){
+			if(z_gyro_rpm > 2){
 				motorON();
 				motorCW();
-				motorRPM(control_speed);
+				motorRPM(80 * z_gyro_rpm * z_gyro_rpm);
 			}
-			else if (control_speed < -1){
+			else if (z_gyro_rpm < -2){
 				motorON();
 				motorCCW();
-				motorRPM(control_speed);
+				motorRPM(-80  * z_gyro_rpm * z_gyro_rpm);
 			}
 			else{
 				motorRPM(0);
@@ -227,6 +191,11 @@ int main(void) {
 			log_num++;
 			row = row + 8;
 			blink_count++;
+
+			//check if need to parse command
+			if(spi_slv_fsm_state == PARSING_COMMAND){
+				parse_cmd_from_host(spi_slv_read_message);
+			}
 
 			__delay_cycles(32000);
 		}
@@ -410,5 +379,89 @@ void blinkP1OUT(int blink_number){
 	}
 }
 
+
+//*********************************************************************************************************//
+//*********************************************************************************************************//
+//*********************************		TALK TO HOST MSP SPI	  *****************************************//
+//*********************************************************************************************************//
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=EUSCI_A0_VECTOR
+__interrupt void USCI_A0_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    switch(__even_in_range(UCA0IV, USCI_SPI_UCTXIFG))
+    {
+        case USCI_NONE: break;
+        case USCI_SPI_UCRXIFG:
+        	spi_slv_read_buffer[spi_slv_index] = UCA0RXBUF;
+             switch(spi_slv_fsm_state)
+             {
+                case LISTENING_FOR_COMMAND:
+                    if(spi_slv_read_buffer[spi_slv_index] == '{'){
+                      spi_slv_fsm_state = CAPTURING_COMMAND;
+                      spi_slv_read_message[0] = '{';
+                      spi_slv_read_index = 1;
+                      TX_A0_SPI('C');
+                    }
+                    else{
+                        TX_A0_SPI('L');
+                    }
+                    break;
+                case CAPTURING_COMMAND:
+                    spi_slv_read_message[spi_slv_read_index++] = spi_slv_read_buffer[spi_slv_index];
+                    if(spi_slv_read_buffer[spi_slv_index] == '}'){
+                      spi_slv_fsm_state = PARSING_COMMAND;
+                      spi_slv_read_message[spi_slv_read_index] = '\0';
+                      spi_slv_write_index = 0;
+                      TX_A0_SPI('D');
+                      __bic_SR_register_on_exit(LPM0_bits);
+                    }
+                    else {
+                      TX_A0_SPI('C');
+                    }
+                    break;
+                case PARSING_COMMAND:
+                    TX_A0_SPI('P');
+                    break;
+                case OBTAINING_DATA:
+                    TX_A0_SPI('O');
+                    break;
+                case RESPONDING_WITH_DATA:
+                    spi_slv_tx_data = spi_slv_send_message[spi_slv_write_index++];
+                    if(spi_slv_tx_data == '}'){
+                      spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+                    }
+                    TX_A0_SPI(spi_slv_tx_data);
+                    break;
+//                case RESPONDING_WITH_ALL_DATA:
+//                    spi_slv_tx_data = respond_all_data_msg[spi_slv_write_index++];
+//                    if(spi_slv_tx_data == '$'){
+//                      spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+//                    }
+//                    else {
+//                        TX_A0_SPI(spi_slv_tx_data);
+//                    }
+//                    break;
+                default:
+
+                    break;
+             }
+        	if(spi_slv_index == BUFF_LEN-1){
+        		spi_slv_index = 0;
+        	}
+              else {
+                spi_slv_index++;
+              }
+			break;
+        case USCI_SPI_UCTXIFG:
+            break;
+        default: break;
+    }
+}
+//*********************************************************************************************************//
 
 
