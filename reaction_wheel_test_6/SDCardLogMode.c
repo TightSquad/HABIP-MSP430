@@ -779,7 +779,7 @@ void SDCardNewFile(unsigned short* numLogFiles)
 //    	return;
 //    }
 
-    char * temp = "Default Data Logging:\r\n";
+    char * temp = "Data Logging:\r\n";
     //char * temp = "\r\n";
 
     // Construct log file's name
@@ -809,7 +809,7 @@ void SDCardNewFile(unsigned short* numLogFiles)
     rc = f_lseek(&fil, f_size(&fil));
 //    f_puts(buffer, &fil);
     f_puts("\r\n", &fil);
-    f_puts("Hour/Min, Sec,MS, ZGYRO, MotorSpeed:\r\n", &fil);
+    f_puts("Hour,Min, Sec,MS, XGYRO, YGYRO, ZGYRO, XACCEL, YACCEL, ZACCEL, MotorSpeed:\r\n", &fil);
     rc = f_close(&fil);
 
 	SDCardLib_unInit(&sdCardLib);

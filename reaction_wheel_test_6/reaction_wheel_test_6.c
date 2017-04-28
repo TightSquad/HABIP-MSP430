@@ -22,8 +22,8 @@ Calendar calendar;                                // Calendar used for RTC
 
 Calendar currTime;
 
-int NumLoggedDataRows = 25000;
-//int NumLoggedDataRows = 5000;
+int NumReactionWheelLoggedDataRows = 25000;
+int NumLoggedDataRows = 3000; //~100ms a sample
 
 extern int reaction_wheel_control_bit;
 
@@ -92,7 +92,7 @@ int main(void) {
     Init_Clock();
 
     // create the folder on SD card
-    storeTimeStampSDCard(&numLogFiles);
+//    storeTimeStampSDCard(&numLogFiles);
 
 	//start the RTC
 	Init_RTC();
@@ -105,8 +105,8 @@ int main(void) {
 	// setup ADC to read from Header J8, SPEED_IN
 	setupADC();
 
-	// Configure SPI
-	config_SPI_A0_Slave();
+	// Configure SPI to HOST
+//	config_SPI_A0_Slave();
 //	__bis_SR_register(GIE); // LG Recommended
 
 	Init_Clock();
@@ -115,13 +115,15 @@ int main(void) {
 //		reaction_wheel_control_bit = P8IN & 0x01;
 
 		//for testing reaction wheel
-		reaction_wheel_control_bit = 1;
+//		reaction_wheel_control_bit = 1;
 
 		if (reaction_wheel_control_bit == 1){
 			ReactionWheel();
+			reaction_wheel_control_bit = 0;
 		}
 		if (reaction_wheel_control_bit == 0){
 			DataLogging();
+			reaction_wheel_control_bit = 1;
 		}
 	}
 
@@ -151,6 +153,7 @@ void Init_GPIO()
 //    GPIO_setAsOutputPin(GPIO_PORT_P5, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
 //    GPIO_setAsOutputPin(GPIO_PORT_P6, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
     GPIO_setAsOutputPin(GPIO_PORT_P7, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
+    GPIO_setAsInputPin(GPIO_PORT_P8, GPIO_PIN0);
 //    GPIO_setAsOutputPin(GPIO_PORT_P8, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7);
 //    GPIO_setAsOutputPin(GPIO_PORT_PJ, GPIO_PIN0|GPIO_PIN1|GPIO_PIN2|GPIO_PIN3|GPIO_PIN4|GPIO_PIN5|GPIO_PIN6|GPIO_PIN7|GPIO_PIN8|GPIO_PIN9|GPIO_PIN10|GPIO_PIN11|GPIO_PIN12|GPIO_PIN13|GPIO_PIN14|GPIO_PIN15);
 
@@ -305,7 +308,7 @@ void ReactionWheel(void){
 	GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
 	GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
 
-	while (log_num < NumLoggedDataRows) {
+	while (log_num < NumReactionWheelLoggedDataRows) {
 		//initialze the SPI
 		setup_IMU_SPI();
 
@@ -392,7 +395,8 @@ void ReactionWheel(void){
 //			break;
 //		}
 
-		__delay_cycles(32000);
+//		__delay_cycles(32000);
+		__delay_cycles(8000);
 	}
 
 	//slow down and stop the motor
@@ -408,7 +412,7 @@ void ReactionWheel(void){
 	log_num = 0;
 
 	//start data logging
-	for(log_num = 0; log_num < NumLoggedDataRows; log_num++){
+	for(log_num = 0; log_num < NumReactionWheelLoggedDataRows; log_num++){
 		//read from FRAM2 and convert int to char string
 		itoa(__data20_read_short((unsigned long int)fram_data + row), hour_min_char, 16);
 		itoa(__data20_read_short((unsigned long int)fram_data+ row + 2), sec_ms_char, 16);
@@ -550,10 +554,10 @@ void DataLogging(void){
 		log_num++;
 		row = row + 8;
 		blink_count++;
-		reaction_wheel_control_bit = P8IN & 0x01;
-		if (reaction_wheel_control_bit == 1){
-			return;
-		}
+//		reaction_wheel_control_bit = P8IN & 0x01;
+//		if (reaction_wheel_control_bit == 1){
+//			return;
+//		}
 //		__delay_cycles(32000);
 	}
 
