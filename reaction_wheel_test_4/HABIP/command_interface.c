@@ -630,8 +630,6 @@ void parse_cmd_from_host(char* msg){
 				one_colon_extract(msg_copy,&host2_cmd,&host2_val);
 				if(strcmp(host2_cmd,"03")==0){
 					// Insert Reaction wheel cmd TODO:
-					// if host2_val == '0' turn off reaction wheel
-					// if host2_val == '1' turn on reaction wheel
 
 					spi_slv_fsm_state = LISTENING_FOR_COMMAND;
 				}
