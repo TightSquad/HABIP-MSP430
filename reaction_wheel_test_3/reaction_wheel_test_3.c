@@ -247,7 +247,7 @@ int main(void) {
 			log_num++;
 			row = row + 8;
 			blink_count++;
-			spi_slave_parse(5); // LG Recommended
+			spi_slave_parse(); // LG Recommended
 			__delay_cycles(32000);
 		}
 
