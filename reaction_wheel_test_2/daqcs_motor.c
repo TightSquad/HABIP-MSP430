@@ -100,6 +100,9 @@ int mapMotorSpeed(double input){
 }
 
 void motorRPM(double desired_rpm){
+	if (desired_rpm < 0) {
+		desired_rpm = desired_rpm * -1;
+	}
 	// map the desired RPM to a duty cycle
 	// send duty cycle command to PWM control
 	motorSpeed(mapMotorSpeed(desired_rpm));

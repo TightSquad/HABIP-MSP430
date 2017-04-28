@@ -102,11 +102,11 @@ int main(void) {
 	signed int z_gyro_raw;
 	double z_gyro_rpm;
 
-	double kp = 100;
-	double ki = 5;
-	double kd = 50;
+	double kp = 130;
+	double ki = -0.2;
+	double kd = 400;
 	double error;
-	double integral;
+	double integral = 0;
 	double derivative;
 	double control_speed;
 	double last_error;
@@ -190,23 +190,24 @@ int main(void) {
 //			}
 
 
-			error = z_gyro_rpm;
+			error = -z_gyro_rpm;
 
-//			integral = integral + error;
+			integral = integral + error;
 
-			derivative = error  - last_error;
+//			derivative = error  - last_error;
 
 //			control_speed = (kp * error) + (ki * integral) + (kd * derivative);
-			control_speed = (kp * error) + (kd * derivative);
+			control_speed = (kp * error) + (ki * integral);
+//			control_speed = (kp * error) + (kd * derivative);
 
-			last_error = error;
+//			last_error = error;
 
-			if(control_speed > 1){
+			if(control_speed > 0.2){
 				motorON();
 				motorCW();
 				motorRPM(control_speed);
 			}
-			else if (control_speed < -1){
+			else if (control_speed < -0.2){
 				motorON();
 				motorCCW();
 				motorRPM(control_speed);
