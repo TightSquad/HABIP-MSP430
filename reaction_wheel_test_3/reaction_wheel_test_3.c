@@ -22,8 +22,8 @@ Calendar calendar;                                // Calendar used for RTC
 
 Calendar currTime;
 
-//int NumLoggedDataRows = 25000;
-int NumLoggedDataRows = 5000;
+int NumLoggedDataRows = 25000;
+//int NumLoggedDataRows = 5000;
 
 unsigned char count = 0;
 unsigned long data;
@@ -241,6 +241,8 @@ int main(void) {
 			if (blink_count == 100){
 				GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
 				GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN1);
+				itoa(z_gyro_raw, z_gyro_char, 10);
+				store_response_val(4, "ZGY", z_gyro_char);
 				blink_count = 0;
 			}
 
@@ -444,19 +446,26 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
         case USCI_NONE: break;
         case USCI_SPI_UCRXIFG:
         	spi_slv_read_buffer[spi_slv_index] = UCA0RXBUF;
+        	UCA0IFG &= ~UCRXIFG;
              switch(spi_slv_fsm_state)
              {
+             case 6:
+            	 if(spi_slv_read_buffer[spi_slv_index] == '{'){
+				  spi_slv_fsm_state = CAPTURING_COMMAND;
+				  spi_slv_read_message[0] = '{';
+				  spi_slv_read_index = 1;
+				  TX_A0_SPI('C');
+				}
+				else{
+					TX_A0_SPI('L');
+//                    	UCA0TXBUF = 'L';
+				}
+				break;
                 case LISTENING_FOR_COMMAND:
-                    if(spi_slv_read_buffer[spi_slv_index] == '{'){
-                      spi_slv_fsm_state = CAPTURING_COMMAND;
-                      spi_slv_read_message[0] = '{';
-                      spi_slv_read_index = 1;
-                      TX_A0_SPI('C');
-                    }
-                    else{
-                        TX_A0_SPI('L');
-                    }
-                    break;
+                    if(spi_slv_read_buffer[spi_slv_index] == 'R'){
+						   spi_slv_fsm_state = 6;
+					 }
+					 break;
                 case CAPTURING_COMMAND:
                     spi_slv_read_message[spi_slv_read_index++] = spi_slv_read_buffer[spi_slv_index];
                     if(spi_slv_read_buffer[spi_slv_index] == '}'){
@@ -464,7 +473,7 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
                       spi_slv_read_message[spi_slv_read_index] = '\0';
                       spi_slv_write_index = 0;
                       TX_A0_SPI('D');
-                      __bic_SR_register_on_exit(LPM0_bits);
+//                      __bic_SR_register_on_exit(LPM0_bits);
                     }
                     else {
                       TX_A0_SPI('C');

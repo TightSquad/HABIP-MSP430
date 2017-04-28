@@ -90,7 +90,7 @@ void config_SPI_B0_Master_SMCLK(void){
      */
 // Configure USCI_B0 for SPI operation
     UCB0CTLW0 = UCSWRST;                    // **Put state machine in reset**
-    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM; // 4-pin, 8-bit SPI master
+    UCB0CTLW0 |= UCMST | UCSYNC | UCCKPH | UCMSB | UCMODE_1 | UCSTEM; // 4-pin, 8-bit SPI master
                                             // Clock polarity high, MSB
     UCB0CTLW0 |= UCSSEL__SMCLK;             // SMCLK
     UCB0BRW = 0x08;                         // 	/8
@@ -119,7 +119,9 @@ void config_SPI_A0_Slave(void){
 	 */
 // Configure USCI_A0 for SPI operation
    UCA0CTLW0 = UCSWRST;                    // **Put state machine in reset**
-   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM; // 4-pin, 8-bit SPI slave
+   //UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM; // 4-pin, 8-bit SPI slave
+   UCA0CTLW0 |= UCSYNC | UCCKPH | UCMSB | UCMODE_1; // 4-pin, 8-bit SPI slave
+
                                            // Clock polarity high, MSB
    UCA0BRW = 0x02;                         // /2
    UCA0MCTLW = 0;                          // No modulation

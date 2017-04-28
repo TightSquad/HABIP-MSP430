@@ -48,7 +48,7 @@ int readADC(void){
    ADC12CTL0 |= ADC12ENC + ADC12SC;
 
    //enable general interrupts
-   __bis_SR_register(LPM0_bits | GIE);
+   __bis_SR_register(GIE);
 
    //wait for the adc software flag to be set
    while(adc_software_flag == 0);
@@ -90,7 +90,7 @@ __interrupt void ADC12_ISR(void)
 	//grab the ADC value
 	adc_val = ADC12MEM12;			//store value of ADC in array
 //	__bic_SR_register_on_exit(LPM0_bits | GIE); LG Recommended
-	__bic_SR_register_on_exit(LPM0_bits);
+	//__bic_SR_register_on_exit(LPM0_bits);
 	return;
 
 }

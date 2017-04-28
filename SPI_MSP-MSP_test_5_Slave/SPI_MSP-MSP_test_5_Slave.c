@@ -93,7 +93,7 @@ extern volatile int spi_slv_read_index;
 extern volatile char spi_slv_tx_data;
 
 
-};
+
 int main(void)
 {
       WDTCTL = WDTPW | WDTHOLD;               // Stop Watchdog
@@ -133,9 +133,11 @@ int main(void)
 		__no_operation();
 		__bis_SR_register(LPM0_bits);
   		__no_operation();
+  		toggle_heartbeat();
               if(spi_slv_fsm_state == PARSING_COMMAND){
                 parse_cmd_from_host(spi_slv_read_message);
               }
+              store_response_val(4,"ZGY","6969");
 	}
 // End Main Code
 
@@ -166,7 +168,8 @@ void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
                       TX_A0_SPI('C');
                     }
                     else{
-                        TX_A0_SPI('L');
+//                        TX_A0_SPI('L');
+                    	UCA0TXBUF = 'L';
                     }
                     break;
                 case CAPTURING_COMMAND:
