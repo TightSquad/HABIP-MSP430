@@ -119,7 +119,9 @@ void config_SPI_A0_Slave(void){
 	 */
 // Configure USCI_A0 for SPI operation
    UCA0CTLW0 = UCSWRST;                    // **Put state machine in reset**
-   UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM; // 4-pin, 8-bit SPI slave
+   //UCA0CTLW0 |= UCSYNC | UCCKPL | UCMSB | UCMODE_1 | UCSTEM; // 4-pin, 8-bit SPI slave
+   UCA0CTLW0 |= UCSYNC | UCCKPH | UCMSB | UCMODE_1; // 4-pin, 8-bit SPI slave
+
                                            // Clock polarity high, MSB
    UCA0BRW = 0x02;                         // /2
    UCA0MCTLW = 0;                          // No modulation
