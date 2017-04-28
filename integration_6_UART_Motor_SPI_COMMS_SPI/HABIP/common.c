@@ -56,11 +56,3 @@ void delay_LED(void){
     }
   }
 }
-
-// Exponential moving average
-// https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
-double EMA(double new_sample, double ma_old){
-	// A lower alpha discounts older observations faster
-	double alpha = 0.3;
-	return alpha * new_sample + (1-alpha) * ma_old; // also have seen online: newValue = oldValue + alpha * (value - oldValue)
-}
