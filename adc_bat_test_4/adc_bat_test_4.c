@@ -5,7 +5,7 @@
 
 
 extern uint16_t adc_val;
-extern int adc_software_flag;
+extern int adc_software_fg;
 extern int cellNum;
 //
 //// Error raised if an individual cell is too low for a little while
@@ -21,7 +21,7 @@ int main(void) {
     double adc_cell_averages[6];
 
     // Setup ADC
-    setupADC();
+    setupBattADC();
 
     // Get 30 samples of individual cell voltages
     int j = 0;
@@ -44,7 +44,7 @@ int main(void) {
 __interrupt void ADC12_ISR(void)
 {
 	//set the software flag
-	adc_software_flag = 1;
+	adc_software_fg = 1;
 
 	//grab the ADC value
 	switch (cellNum){
