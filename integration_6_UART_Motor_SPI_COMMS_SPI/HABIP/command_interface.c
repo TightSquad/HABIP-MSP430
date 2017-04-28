@@ -518,7 +518,15 @@ void parse_cmd_from_comms(char* msg){
 				one_colon_extract(msg_copy,&comms2_cmd,&comms2_val);
 				if((strcmp(comms2_cmd,"03")==0)||(strcmp(comms2_cmd,"04")==0)){
 					// forward reaction wheel command to motor msp
-					SPI_command_host_to_slave_no_response(msg, &spi_mst_sendDoneFG);
+					if(strcmp(comms2_cmd,"03")==0){
+						if(*comms2_val == '0'){
+							P8OUT &= ~(BIT0);
+						}
+						else if(*comms2_val == '1'){
+							P8OUT |= (BIT0);
+						}
+					}
+//					SPI_command_host_to_slave_no_response(msg, &spi_mst_sendDoneFG);
 					spi_slv_fsm_state = LISTENING_FOR_COMMAND;
 				}
 				else if(strcmp(comms2_cmd,"05")==0){

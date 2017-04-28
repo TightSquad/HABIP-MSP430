@@ -96,7 +96,8 @@ extern volatile char spi_slv_tx_data;
 extern char respond_all_data_msg[1024];
 
 volatile int timer_counter = 0;
-
+int motor_en_cnt = 0;
+#define MOTOR_CNT 6
 //*********************************************************************************************************//
 int main(void)
 {
@@ -120,6 +121,10 @@ int main(void)
     P7DIR |= (BIT0);
     P7OUT &= ~(BIT0);
 
+// Temp talk to Motor MSP for reaction wheel.
+    P8DIR |= (BIT0);
+    P8OUT &= ~(BIT0);
+
 // Configure Clock
     config_ACLK_XT1_32KHz_DCO_8MHz_SMCLK_250KHz();
 
@@ -138,6 +143,8 @@ int main(void)
 
     __no_operation();
     __bis_SR_register(GIE);
+
+    P8OUT |= BIT0;
 
 // Begin Main Code
 while(1){
@@ -162,10 +169,17 @@ while(1){
 	}
 	else if(timer_counter == 7){
 		grab_all_pi_hat(3);
+		if(motor_en_cnt == MOTOR_CNT){
+			P8OUT ^= (BIT0);
+			motor_en_cnt = 0;
+		}
+		else {
+			motor_en_cnt++;
+		}
 		timer_counter++;
 	}
 	else if(timer_counter == 9){
-		grab_all_motor_msp();
+//		grab_all_motor_msp();
 		timer_counter++;
 	}
 	UART_parse(0);
