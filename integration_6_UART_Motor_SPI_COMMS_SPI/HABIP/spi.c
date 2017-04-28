@@ -23,6 +23,9 @@ volatile char spi_mst_tx_data = '\0';
 volatile int spi_mst_readDoneFG = 0;
 volatile int spi_mst_sendDoneFG = 0;
 volatile int spi_mst_send_only = 0;
+volatile int spi_mst_time_out_happened = 0;
+#define TIMEOUT 10000
+volatile int spi_mst_time_out_cnt = 0;
 
 // Slave (slv)
 volatile int spi_slv_fsm_state = LISTENING_FOR_COMMAND;
@@ -136,10 +139,18 @@ void SPI_command_host_to_slave(char* message,volatile int* read_done){
     TX_B0('R');
     // Chill until have successfully received a reply from slave
     // or until flag that shows need to reset?
-    while(*read_done == 0){
-    	__bis_SR_register(LPM0_bits); // Enter LPM0
-    	__no_operation();
+    while(*read_done == 0 && spi_mst_time_out_happened == 0){
+//        __bis_SR_register(LPM0_bits); // Enter LPM0
+    	spi_mst_time_out_cnt++;
+        __no_operation();
+        if(spi_mst_time_out_cnt >= TIMEOUT){
+        	spi_mst_time_out_happened = 1;
+        }
     }
+    spi_mst_send_only = 0;
+    spi_mst_time_out_happened = 0;
+    spi_mst_time_out_cnt = 0;
+    spi_mst_fsm_state = MST_IDLE;
     *read_done = 0;
     UCB0IE &= ~UCRXIE; // Clear RX interrupt so no noise read in?
 }
@@ -153,11 +164,18 @@ void SPI_command_host_to_slave_no_response(char* message,volatile int* send_done
     TX_B0('R');
     // Chill until have successfully received a reply from slave
     // or until flag that shows need to reset?
-    while(*send_done == 0){
-        __bis_SR_register(LPM0_bits); // Enter LPM0
+    while(*send_done == 0 && spi_mst_time_out_happened == 0){
+//        __bis_SR_register(LPM0_bits); // Enter LPM0
+    	spi_mst_time_out_cnt++;
         __no_operation();
+        if(spi_mst_time_out_cnt >= TIMEOUT){
+        	spi_mst_time_out_happened = 1;
+        }
     }
     spi_mst_send_only = 0;
+    spi_mst_time_out_happened = 0;
+    spi_mst_time_out_cnt = 0;
+    spi_mst_fsm_state = MST_IDLE;
     *send_done = 0;
     UCB0IE &= ~UCRXIE; // Clear RX interrupt so no noise read in?
 }

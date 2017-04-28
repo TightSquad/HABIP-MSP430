@@ -78,6 +78,7 @@ extern volatile int spi_mst_readDoneFG;
 extern volatile int spi_mst_sendDoneFG;
 extern volatile int spi_mst_send_only;
 volatile char spi_mst_rx_data;
+extern volatile int spi_mst_time_out_happened;
 
 // Slave (slv)
 extern volatile int spi_slv_fsm_state;
