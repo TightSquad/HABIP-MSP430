@@ -92,7 +92,7 @@ int main(void) {
     Init_Clock();
 
     // create the folder on SD card
-    //storeTimeStampSDCard(&numLogFiles);
+    storeTimeStampSDCard(&numLogFiles);
 
 
 
@@ -501,8 +501,12 @@ void DataLogging(void){
 		itoa(z_gyro_raw, z_gyro_char, 10);
 		itoa(current_adc_val, adc_char, 10);
 
+		SDFindOpenNewFile();
+
 		//write all data to a single line in the currently open txt file
 		writeDataSameLine_4(hour_min_char, sec_ms_char, z_gyro_char, adc_char);
+
+		SDCloseSPI();
 
 		//blink every 100 samples captured
 		if (blink_count == 100){
@@ -522,7 +526,7 @@ void DataLogging(void){
 	}
 
 	//close the currently open txt file
-	SDCloseSPI();
+	//SDCloseSPI();
 }
 
 
