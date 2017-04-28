@@ -756,20 +756,20 @@ void cutdown(void){
 }
 
 void grab_all_motor_msp(void){
-	grab_all_daqcs(TB0);
-	grab_all_daqcs(P0);
-	grab_all_daqcs(PB);
-	grab_all_daqcs(V);
-	grab_all_daqcs(C);
-	grab_all_daqcs(XGY);
-	grab_all_daqcs(XAC);
-	grab_all_daqcs(YGY);
-	grab_all_daqcs(YAC);
+//	grab_all_daqcs(TB0);
+//	grab_all_daqcs(P0);
+//	grab_all_daqcs(PB);
+//	grab_all_daqcs(V);
+//	grab_all_daqcs(C);
+//	grab_all_daqcs(XGY);
+//	grab_all_daqcs(XAC);
+//	grab_all_daqcs(YGY);
+//	grab_all_daqcs(YAC);
 	grab_all_daqcs(ZGY);
-	grab_all_daqcs(ZAC);
+//	grab_all_daqcs(ZAC);
 	grab_all_daqcs(MS);
 	grab_all_daqcs(MC);
-	grab_all_daqcs(MV);
+//	grab_all_daqcs(MV);
 	grab_all_daqcs(MD);
 	grab_all_daqcs(ME);
 }

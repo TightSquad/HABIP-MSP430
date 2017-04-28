@@ -42,6 +42,15 @@
             spi_slv_send_buffer[spi_slv_index] = val;\
            })
 
+#define spi_slave_parse(cnt) ({\
+	int spi_slv_fsm_state_cnt;\
+	for(spi_slv_fsm_state_cnt = 0; spi_slv_fsm_state_cnt<cnt; spi_slv_fsm_state_cnt++){\
+		if(spi_slv_fsm_state == PARSING_COMMAND){\
+				parse_cmd_from_host(spi_slv_read_message);\
+		}\
+	}\
+})
+
 void config_SPI_B0_Master_GPIO(void);
 void config_SPI_B0_Master_ACLK(void);
 void config_SPI_B0_Master_SMCLK(void);

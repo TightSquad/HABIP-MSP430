@@ -6,12 +6,12 @@
  */
 #include <msp430.h>
 #include <driverlib.h>
-#include "common.h"
 #include "battery.h"
+#include "common.h"
 
 
 uint16_t adc_val;
-int adc_software_flag = 0;
+int adc_software_fg = 0;
 int cellNum = 1;
 
 // Error raised if an individual cell is too low for a little while
@@ -37,7 +37,7 @@ void getCellVoltages(double adc_cell_averages[], int first_sample_flag){
 	// Loop through values for 6 cells, then 5 cells, ... , then 1 cell
 	for (i=1; i<7; i++){
 		cellNum = i;
-		readADC(i);
+		readBattADC(i);
 		current_cells_divided_voltage = (double) adc_val/4096*3.3;
 		current_cells_voltage = current_cells_divided_voltage*voltage_scale_factors[i-1];
 		multiple_cell_voltages[i-1] = current_cells_voltage;
@@ -60,7 +60,7 @@ void getCellVoltages(double adc_cell_averages[], int first_sample_flag){
     else{
 	    for (i=0; i<6; i++){
 		    individual_cell_voltage = multiple_cell_voltages[i]-multiple_cell_voltages[i+1];
-			individual_cell_average = EMA(individual_cell_voltage,adc_cell_averages[i]);
+			individual_cell_average = EMA_Batt(individual_cell_voltage,adc_cell_averages[i]);
 
 			if (individual_cell_average < CELL_THRESHOLD){ // Increment low cell counter if cell voltage is too low
 				low_cell_count[i]++;
@@ -76,7 +76,7 @@ void getCellVoltages(double adc_cell_averages[], int first_sample_flag){
 	return;
 }
 
-void setupADC(void){
+void setupBattADC(void){
 	// VBAT_MOD_CELL_1 is for all 6 cells and is pin P3.0_A12_C12
 	// VBAT_MOD_CELL_2 is for 5 cells and is pin P3.1_A13_C13
 	// VBAT_MOD_CELL_3 is for 4 cells and is pin P3.2_A14_C14
@@ -168,7 +168,7 @@ void setupADC(void){
     return;
 }
 
-void readADC(int adc_mem_reg){
+void readBattADC(int adc_mem_reg){
 	// Start acquisitons for the MEM for the current battery cell
 	ADC12CTL3 = 0;
 	switch (adc_mem_reg){
@@ -202,13 +202,20 @@ void readADC(int adc_mem_reg){
    __bis_SR_register(LPM0_bits | GIE);
 
    //wait for the adc software flag to be set
-   while(adc_software_flag == 0);
+   while(adc_software_fg == 0);
 
    //disable the ADC
    ADC12CTL0 &= ~ADC12ENC;
 
    //clear the adc software flag
-   adc_software_flag = 0;
+   adc_software_fg = 0;
 
    return;
+}
+// Exponential moving average
+// https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
+double EMA_Batt(double new_sample, double ma_old){
+	// A lower alpha discounts older observations faster
+	double alpha = 0.3;
+	return alpha * new_sample + (1-alpha) * ma_old; // also have seen online: newValue = oldValue + alpha * (value - oldValue)
 }

@@ -43,7 +43,16 @@ void blinkP1OUT(int blink_number);
 // SPI UD Variables -habip/spi.c
 // Slave (slv)
 extern volatile int spi_slv_fsm_state;
+extern char spi_slv_read_buffer[BUFF_LEN];
 extern char spi_slv_read_message[MSG_LEN];
+extern char spi_slv_send_message[MSG_LEN];
+extern char spi_slv_send_buffer[BUFF_LEN];
+extern volatile int spi_slv_index;
+extern volatile int spi_slv_req_data;
+extern volatile int spi_slv_data_available;
+extern volatile int spi_slv_write_index;
+extern volatile int spi_slv_read_index;
+extern volatile char spi_slv_tx_data;
 
 //-----------------------------------------------------------------------------
 int _system_pre_init(void)
@@ -238,9 +247,8 @@ int main(void) {
 			log_num++;
 			row = row + 8;
 			blink_count++;
-			spi_slave_parse(); // LG Recommended
+			spi_slave_parse(5); // LG Recommended
 			__delay_cycles(32000);
-			spi_slave_parse(); // LG Recommended
 		}
 
 		//slow down and stop the motor
@@ -421,6 +429,85 @@ void blinkP1OUT(int blink_number){
 		__delay_cycles(5000);
 	}
 }
+//*********************************************************************************************************//
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=EUSCI_A0_VECTOR
+__interrupt void USCI_A0_ISR(void)
+#elif defined(__GNUC__)
+void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
+#else
+#error Compiler not supported!
+#endif
+{
+    switch(__even_in_range(UCA0IV, USCI_SPI_UCTXIFG))
+    {
+        case USCI_NONE: break;
+        case USCI_SPI_UCRXIFG:
+        	spi_slv_read_buffer[spi_slv_index] = UCA0RXBUF;
+             switch(spi_slv_fsm_state)
+             {
+                case LISTENING_FOR_COMMAND:
+                    if(spi_slv_read_buffer[spi_slv_index] == '{'){
+                      spi_slv_fsm_state = CAPTURING_COMMAND;
+                      spi_slv_read_message[0] = '{';
+                      spi_slv_read_index = 1;
+                      TX_A0_SPI('C');
+                    }
+                    else{
+                        TX_A0_SPI('L');
+                    }
+                    break;
+                case CAPTURING_COMMAND:
+                    spi_slv_read_message[spi_slv_read_index++] = spi_slv_read_buffer[spi_slv_index];
+                    if(spi_slv_read_buffer[spi_slv_index] == '}'){
+                      spi_slv_fsm_state = PARSING_COMMAND;
+                      spi_slv_read_message[spi_slv_read_index] = '\0';
+                      spi_slv_write_index = 0;
+                      TX_A0_SPI('D');
+                      __bic_SR_register_on_exit(LPM0_bits);
+                    }
+                    else {
+                      TX_A0_SPI('C');
+                    }
+                    break;
+                case PARSING_COMMAND:
+                    TX_A0_SPI('P');
+                    break;
+                case OBTAINING_DATA:
+                    TX_A0_SPI('O');
+                    break;
+                case RESPONDING_WITH_DATA:
+                    spi_slv_tx_data = spi_slv_send_message[spi_slv_write_index++];
+                    if(spi_slv_tx_data == '}'){
+                      spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+                    }
+                    TX_A0_SPI(spi_slv_tx_data);
+                    break;
+//                case RESPONDING_WITH_ALL_DATA:
+//                    spi_slv_tx_data = respond_all_data_msg[spi_slv_write_index++];
+//                    if(spi_slv_tx_data == '$'){
+//                      spi_slv_fsm_state = LISTENING_FOR_COMMAND;
+//                    }
+//                    else {
+//                        TX_A0_SPI(spi_slv_tx_data);
+//                    }
+//                    break;
+                default:
 
+                    break;
+             }
+        	if(spi_slv_index == BUFF_LEN-1){
+        		spi_slv_index = 0;
+        	}
+              else {
+                spi_slv_index++;
+              }
+			break;
+        case USCI_SPI_UCTXIFG:
+            break;
+        default: break;
+    }
+}
+//*********************************************************************************************************//
 
 

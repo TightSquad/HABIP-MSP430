@@ -23,6 +23,10 @@ void config_DS4_LED(void){
             GPIO_PORT_P1,
             GPIO_PIN0
             );
+    GPIO_setOutputLowOnPin(
+    		GPIO_PORT_P1,
+			GPIO_PIN0
+			);
     activate_GPIO_config();
 }
 void Toggle_ON_OFF_DS4_LED(void){
@@ -51,12 +55,4 @@ void delay_LED(void){
       __no_operation();
     }
   }
-}
-
-// Exponential moving average
-// https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
-double EMA(double new_sample, double ma_old){
-	// A lower alpha discounts older observations faster
-	double alpha = 0.3;
-	return alpha * new_sample + (1-alpha) * ma_old; // also have seen online: newValue = oldValue + alpha * (value - oldValue)
 }
