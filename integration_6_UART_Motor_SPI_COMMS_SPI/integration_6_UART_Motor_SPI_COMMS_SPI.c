@@ -77,6 +77,7 @@ extern volatile char spi_mst_tx_data;
 extern volatile int spi_mst_readDoneFG;
 extern volatile int spi_mst_sendDoneFG;
 extern volatile int spi_mst_send_only;
+volatile char spi_mst_rx_data;
 
 // Slave (slv)
 extern volatile int spi_slv_fsm_state;
@@ -380,16 +381,25 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
     {
         case USCI_NONE: break;
         case USCI_SPI_UCRXIFG:
-        	spi_mst_read_buffer[spi_mst_index] = UCB0RXBUF;
+//        	spi_mst_read_buffer[spi_mst_index] = UCB0RXBUF;
+        	spi_mst_rx_data = UCB0RXBUF;
+			spi_mst_read_buffer[spi_mst_index] = spi_mst_rx_data;
              switch(spi_mst_fsm_state)
              {
                 case MST_IDLE:
-
+//                	spi_mst_fsm_state = 6;
+//                	TX_B0('M');
                     break;
+//                case 6:
+//                	__no_operation();
+//                	break;
                 case CHECKING_IF_SLAVE_READY:
                     if(spi_mst_read_buffer[spi_mst_index] == 'L'){
                       spi_mst_fsm_state = SENDING_COMMAND;
                       spi_mst_write_index = 0;
+                    }
+                    else {
+                    	spi_mst_fsm_state = spi_mst_fsm_state;
                     }
                     TX_B0('R');
                     break;
@@ -404,6 +414,9 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
                         spi_mst_fsm_state = SPI_LISTENING_FOR_RESPONSE;
                       }
                     }
+                    else {
+                    	spi_mst_fsm_state = spi_mst_fsm_state;
+                    }
                     TX_B0(spi_mst_tx_data);
                     break;
                 case SPI_LISTENING_FOR_RESPONSE:
@@ -414,12 +427,14 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
                       TX_B0('C');
                     }
                     else{
+                    	spi_mst_fsm_state = spi_mst_fsm_state;
                         TX_B0('L');
                     }
                     break;
                 case SPI_CAPTURING_RESPONSE:
-                    spi_mst_read_message[spi_mst_read_index++] = spi_mst_read_buffer[spi_mst_index];
-                    if(spi_mst_read_buffer[spi_mst_index] == '}'){
+                    spi_mst_read_message[spi_mst_read_index] = spi_mst_read_buffer[spi_mst_index];
+                    spi_mst_read_index++;
+                    if(spi_mst_rx_data == '}'){
                       spi_mst_fsm_state = MST_IDLE;
                       spi_mst_readDoneFG = 1;
                       spi_mst_read_message[spi_mst_read_index] = '\0';
@@ -427,11 +442,12 @@ void __attribute__ ((interrupt(EUSCI_B0_VECTOR))) USCI_B0_ISR (void)
                       __bic_SR_register_on_exit(LPM0_bits);
                     }
                     else {
+                    	spi_mst_fsm_state = spi_mst_fsm_state;
                       TX_B0('C');
                     }
                     break;
                 default:
-
+//                	spi_mst_fsm_state = MST_IDLE; // Note: TEMP BANDAID ONLY TODO:
                     break;
              }
         	if(spi_mst_index == BUFF_LEN-1){
