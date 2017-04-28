@@ -22,8 +22,8 @@ Calendar calendar;                                // Calendar used for RTC
 
 Calendar currTime;
 
-//int NumLoggedDataRows = 25000;
-int NumLoggedDataRows = 5000;
+int NumLoggedDataRows = 25000;
+//int NumLoggedDataRows = 5000;
 
 extern int reaction_wheel_control_bit;
 
@@ -107,22 +107,22 @@ int main(void) {
 
 	// Configure SPI
 	config_SPI_A0_Slave();
-	__bis_SR_register(GIE); // LG Recommended
+//	__bis_SR_register(GIE); // LG Recommended
 
 	Init_Clock();
 
 	while(1){
-//		motor_controller_enable = P8IN & 0x01;
+//		reaction_wheel_control_bit = P8IN & 0x01;
+
+		//for testing reaction wheel
+		reaction_wheel_control_bit = 1;
 
 		if (reaction_wheel_control_bit == 1){
 			ReactionWheel();
-			reaction_wheel_control_bit = 0;
 		}
 		if (reaction_wheel_control_bit == 0){
 			DataLogging();
-			reaction_wheel_control_bit = 1;
 		}
-		spi_slave_parse();
 	}
 
 }
@@ -285,8 +285,8 @@ void ReactionWheel(void){
 	signed int z_gyro_raw;
 	double z_gyro_rpm;
 
-	double kp = 100;
-	double ki = 5;
+	double kp = 120;
+	double ki = -0.2;
 	double kd = 50;
 	double error;
 	double integral;
@@ -345,23 +345,24 @@ void ReactionWheel(void){
 		__data20_write_short((unsigned long int)fram_data + row + 6, current_adc_val);
 
 		// PI Controller
-		error = z_gyro_rpm;
+		error = -z_gyro_rpm;
 
-//			integral = integral + error;
+		integral = integral + error;
 
-		derivative = error  - last_error;
+//		derivative = error  - last_error;
 
 //			control_speed = (kp * error) + (ki * integral) + (kd * derivative);
-		control_speed = (kp * error) + (kd * derivative);
+//		control_speed = (kp * error) + (kd * derivative);
+		control_speed = (kp * error) + (ki * integral);
 
-		last_error = error;
+//		last_error = error;
 
-		if(control_speed > 1){
+		if(control_speed > 0.2){
 			motorON();
 			motorCW();
 			motorRPM(control_speed);
 		}
-		else if (control_speed < -1){
+		else if (control_speed < -0.2){
 			motorON();
 			motorCCW();
 			motorRPM(control_speed);
@@ -376,16 +377,21 @@ void ReactionWheel(void){
 		if (blink_count == 100){
 			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
 			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN1);
-			itoa(z_gyro_raw, z_gyro_char, 10);
 			//update Comms Data Buffer
-			store_response_val(4, "ZGY", z_gyro_char);
+//			store_response_val(4, "ZGY", z_gyro_char);
 			blink_count = 0;
 		}
 
 		log_num++;
 		row = row + 8;
 		blink_count++;
-		spi_slave_parse(); // LG Recommended
+
+		//comment out to test reaction wheel
+//		reaction_wheel_control_bit = P8IN & 0x01;
+//		if (reaction_wheel_control_bit == 0){
+//			break;
+//		}
+
 		__delay_cycles(32000);
 	}
 
@@ -436,6 +442,12 @@ void DataLogging(void){
 	long row = 0;
 	int blink_count = 0;
 	int z_gyro_raw;
+	int x_gyro_raw;
+	int y_gyro_raw;
+	int z_accel_raw;
+	int x_accel_raw;
+	int y_accel_raw;
+
 	int current_adc_val;
 
 	char hour_min_char[8];
@@ -451,6 +463,12 @@ void DataLogging(void){
 
 	char z_gyro_char[8];
 	char adc_char[8];
+
+	char x_gyro_char[8];
+	char y_gyro_char[8];
+	char z_accel_char[8];
+	char x_accel_char[8];
+	char y_accel_char[8];
 
 	GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
 	GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN1);
@@ -470,6 +488,13 @@ void DataLogging(void){
 
 		// grab IMU data
 		z_gyro_raw = read_IMU_SPI(ZGYRO);
+		x_gyro_raw = read_IMU_SPI(XGYRO);
+		y_gyro_raw = read_IMU_SPI(YGYRO);
+
+		z_accel_raw = read_IMU_SPI(XACCEL);
+		x_accel_raw = read_IMU_SPI(YACCEL);
+		y_accel_raw = read_IMU_SPI(ZACCEL);
+
 
 		//capture current ADC value
 		current_adc_val = readADC();
@@ -498,10 +523,17 @@ void DataLogging(void){
 		itoa(z_gyro_raw, z_gyro_char, 10);
 		itoa(current_adc_val, adc_char, 10);
 
+		itoa(x_gyro_raw, x_gyro_char, 10);
+		itoa(y_gyro_raw, y_gyro_char, 10);
+		itoa(z_gyro_raw, z_gyro_char, 10);
+		itoa(z_accel_raw, z_accel_char, 10);
+		itoa(y_accel_raw, y_accel_char, 10);
+		itoa(x_accel_raw, x_accel_char, 10);
+
 		SDFindOpenNewFile();
 
 		//write all data to a single line in the currently open txt file
-		writeDataSameLine_4(hour_min_char, sec_ms_char, z_gyro_char, adc_char);
+		writeDataSameLine_9(hour_min_char, sec_ms_char, x_gyro_char, y_gyro_char, z_gyro_char, x_accel_char, y_accel_char, z_accel_char, adc_char);
 
 		SDCloseSPI();
 
@@ -511,14 +543,14 @@ void DataLogging(void){
 			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN1);
 			itoa(z_gyro_raw, z_gyro_char, 10);
 			//update Comms Data Buffer
-			store_response_val(4, "ZGY", z_gyro_char);
+//			store_response_val(4, "ZGY", z_gyro_char);
 			blink_count = 0;
 		}
 
 		log_num++;
 		row = row + 8;
 		blink_count++;
-		spi_slave_parse(); // LG Recommended
+		reaction_wheel_control_bit = P8IN & 0x01;
 		if (reaction_wheel_control_bit == 1){
 			return;
 		}
@@ -528,95 +560,5 @@ void DataLogging(void){
 	//close the currently open txt file
 	//SDCloseSPI();
 }
-
-
-
-//*********************************************************************************************************//
-#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
-#pragma vector=EUSCI_A0_VECTOR
-__interrupt void USCI_A0_ISR(void)
-#elif defined(__GNUC__)
-void __attribute__ ((interrupt(EUSCI_A0_VECTOR))) USCI_A0_ISR (void)
-#else
-#error Compiler not supported!
-#endif
-{
-    switch(__even_in_range(UCA0IV, USCI_SPI_UCTXIFG))
-    {
-        case USCI_NONE: break;
-        case USCI_SPI_UCRXIFG:
-        	spi_slv_read_buffer[spi_slv_index] = UCA0RXBUF;
-        	UCA0IFG &= ~UCRXIFG;
-             switch(spi_slv_fsm_state)
-             {
-             case 6:
-            	 if(spi_slv_read_buffer[spi_slv_index] == '{'){
-				  spi_slv_fsm_state = CAPTURING_COMMAND;
-				  spi_slv_read_message[0] = '{';
-				  spi_slv_read_index = 1;
-				  TX_A0_SPI('C');
-				}
-				else{
-					TX_A0_SPI('L');
-//                    	UCA0TXBUF = 'L';
-				}
-				break;
-                case LISTENING_FOR_COMMAND:
-                    if(spi_slv_read_buffer[spi_slv_index] == 'R'){
-						   spi_slv_fsm_state = 6;
-					 }
-					 break;
-                case CAPTURING_COMMAND:
-                    spi_slv_read_message[spi_slv_read_index++] = spi_slv_read_buffer[spi_slv_index];
-                    if(spi_slv_read_buffer[spi_slv_index] == '}'){
-                      spi_slv_fsm_state = PARSING_COMMAND;
-                      spi_slv_read_message[spi_slv_read_index] = '\0';
-                      spi_slv_write_index = 0;
-                      TX_A0_SPI('D');
-//                      __bic_SR_register_on_exit(LPM0_bits);
-                    }
-                    else {
-                      TX_A0_SPI('C');
-                    }
-                    break;
-                case PARSING_COMMAND:
-                    TX_A0_SPI('P');
-                    break;
-                case OBTAINING_DATA:
-                    TX_A0_SPI('O');
-                    break;
-                case RESPONDING_WITH_DATA:
-                    spi_slv_tx_data = spi_slv_send_message[spi_slv_write_index++];
-                    if(spi_slv_tx_data == '}'){
-                      spi_slv_fsm_state = LISTENING_FOR_COMMAND;
-                    }
-                    TX_A0_SPI(spi_slv_tx_data);
-                    break;
-//                case RESPONDING_WITH_ALL_DATA:
-//                    spi_slv_tx_data = respond_all_data_msg[spi_slv_write_index++];
-//                    if(spi_slv_tx_data == '$'){
-//                      spi_slv_fsm_state = LISTENING_FOR_COMMAND;
-//                    }
-//                    else {
-//                        TX_A0_SPI(spi_slv_tx_data);
-//                    }
-//                    break;
-                default:
-
-                    break;
-             }
-        	if(spi_slv_index == BUFF_LEN-1){
-        		spi_slv_index = 0;
-        	}
-              else {
-                spi_slv_index++;
-              }
-			break;
-        case USCI_SPI_UCTXIFG:
-            break;
-        default: break;
-    }
-}
-//*********************************************************************************************************//
 
 

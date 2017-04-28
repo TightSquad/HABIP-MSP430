@@ -1,5 +1,5 @@
 /* --COPYRIGHT--,BSD
- * Copyright (c) 2014, Texas Instruments Incorporated
+ * Copyright (c) 2016, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,47 +29,34 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * --/COPYRIGHT--*/
-/*******************************************************************************
- *
- * SDCardLogMode.h
- *
- * Wakes up every 5 seconds from LPM3 to measure and store its
- * internal temperature sensor & battery monitor data to SDCard
- *
- * March 2016
- * E. Chen
- *
- ******************************************************************************/
+#include "inc/hw_memmap.h"
 
-#ifndef OUTOFBOX_FR5969_NEWD_SDCARDLOGMODE_H_
-#define OUTOFBOX_FR5969_NEWD_SDCARDLOGMODE_H_
-
-#include <stdint.h>
-
-#define SDCARD_LOG_MODE      '6'
-#define TRANSMIT_SDCARD_DATA_MODE '7'
-
-extern int mode;
-extern int noSDCard;
-
-void sdcardLog(void);
-void sendDataSDCard(void);
-void sendTimeStampSDCard(void);
-void storeTimeStampSDCard(unsigned short* numLogFiles);
-char * itoa(int, char *, int);
-void writeData(char * data);
-void writeDataSameLine(char * data, char * data2, char * data3);
-
-//----------------
-void SDFindOpenNewFile(void);
-void writeDataSameLine_2(char * data, char * data2,  char * data3,  char * data4);
-void writeDataSameLine_3(char * data, char * data2,  char * data3);
-void writeDataSameLine_4(char * data, char * data2,  char * data3, char * data4);
-void SDFindRow(void);
-void SDCloseSPI(void);
-void SDCardNewFile(unsigned short* numLogFiles);
-void SDCardNewFileReactionWheel(unsigned short* numLogFiles);
-//-------------------
-
-
-#endif /* OUTOFBOX_FR5969_NEWD_SDCARDLOGMODE_H_ */
+#include "adc12_b.h"
+#include "aes256.h"
+#include "comp_e.h"
+#include "crc.h"
+#include "crc32.h"
+#include "cs.h"
+#include "dma.h"
+#include "esi.h"
+#include "eusci_a_spi.h"
+#include "eusci_a_uart.h"
+#include "eusci_b_i2c.h"
+#include "eusci_b_spi.h"
+#include "framctl.h"
+#include "framctl_a.h"
+#include "gpio.h"
+#include "lcd_c.h"
+#include "mpu.h"
+#include "mpy32.h"
+#include "pmm.h"
+#include "ram.h"
+#include "ref_a.h"
+#include "rtc_b.h"
+#include "rtc_c.h"
+#include "sfr.h"
+#include "sysctl.h"
+#include "timer_a.h"
+#include "timer_b.h"
+#include "tlv.h"
+#include "wdt_a.h"

@@ -65,6 +65,7 @@ void SDFindOpenNewFile(void);
 void writeDataSameLine_2(char * data, char * data2,  char * data3,  char * data4);
 void writeDataSameLine_3(char * data, char * data2,  char * data3);
 void writeDataSameLine_4(char * data, char * data2,  char * data3, char * data4);
+void writeDataSameLine_9(char * data, char * data2,  char * data3, char * data4, char * data5, char * data6,  char * data7, char * data8, char * data9);
 void SDFindRow(void);
 void SDCloseSPI(void);
 void SDCardNewFile(unsigned short* numLogFiles);

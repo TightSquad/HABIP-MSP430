@@ -446,6 +446,41 @@ void writeDataSameLine_4(char * data, char * data2,  char * data3, char * data4)
 //	);
 }
 
+void writeDataSameLine_9(char * data, char * data2,  char * data3, char * data4, char * data5, char * data6,  char * data7, char * data8, char * data9){
+
+	// Log Temperature ADC conversion results to SDCard
+	//GPIO_setOutputHighOnPin(GPIO_PORT_P7, GPIO_PIN5);
+	f_puts(data, &fil);
+	//GPIO_setOutputLowOnPin(GPIO_PORT_P7, GPIO_PIN5);
+	f_puts(",", &fil);
+	f_puts(data2, &fil);
+	f_puts(",", &fil);
+	f_puts(data3, &fil);
+	f_puts(",", &fil);
+	f_puts(data4, &fil);
+	f_puts(",", &fil);
+	f_puts(data5, &fil);
+	f_puts(",", &fil);
+	f_puts(data6, &fil);
+	f_puts(",", &fil);
+	f_puts(data7, &fil);
+	f_puts(",", &fil);
+	f_puts(data8, &fil);
+	f_puts(",", &fil);
+	f_puts(data9, &fil);
+	f_puts("\r\n", &fil);
+
+	//SDCardLib_unInit(&sdCardLib);
+
+	//Enable SPI module
+//	EUSCI_A_SPI_disable(EUSCI_A2_BASE);
+//
+//	GPIO_setOutputLowOnPin(
+//		GPIO_PORT_P5,
+//		GPIO_PIN6
+//	);
+}
+
 void SDFindOpenNewFile(void){
 
 	//Plugin SDcard interface to SDCard lib
@@ -673,7 +708,7 @@ void storeTimeStampSDCard(unsigned short* numLogFiles)
 //    }
 
     //char * temp = "SDCard Logging Start Time:\r\n";
-    char * temp = "\r\n";
+    char * temp = "Start Logging\r\n";
 
     // Construct log file's name
     strcpy(filename, "log_");
@@ -702,7 +737,7 @@ void storeTimeStampSDCard(unsigned short* numLogFiles)
     rc = f_lseek(&fil, f_size(&fil));
 //    f_puts(buffer, &fil);
     f_puts("\r\n", &fil);
-    f_puts("Temperature and Voltage (12-bit ADC raw data):\r\n", &fil);
+    f_puts("Logging Data:\r\n", &fil);
     rc = f_close(&fil);
 
 	SDCardLib_unInit(&sdCardLib);
@@ -744,7 +779,7 @@ void SDCardNewFile(unsigned short* numLogFiles)
 //    	return;
 //    }
 
-    char * temp = "SDCard Logging Start Time:\r\n";
+    char * temp = "Default Data Logging:\r\n";
     //char * temp = "\r\n";
 
     // Construct log file's name
@@ -774,7 +809,7 @@ void SDCardNewFile(unsigned short* numLogFiles)
     rc = f_lseek(&fil, f_size(&fil));
 //    f_puts(buffer, &fil);
     f_puts("\r\n", &fil);
-    f_puts("Temperature and Voltage (12-bit ADC raw data):\r\n", &fil);
+    f_puts("Hour/Min, Sec,MS, ZGYRO, MotorSpeed:\r\n", &fil);
     rc = f_close(&fil);
 
 	SDCardLib_unInit(&sdCardLib);

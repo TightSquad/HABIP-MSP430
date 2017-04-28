@@ -1,5 +1,5 @@
 /* --COPYRIGHT--,BSD
- * Copyright (c) 2014, Texas Instruments Incorporated
+ * Copyright (c) 2016, Texas Instruments Incorporated
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,47 +29,45 @@
  * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * --/COPYRIGHT--*/
-/*******************************************************************************
- *
- * SDCardLogMode.h
- *
- * Wakes up every 5 seconds from LPM3 to measure and store its
- * internal temperature sensor & battery monitor data to SDCard
- *
- * March 2016
- * E. Chen
- *
- ******************************************************************************/
+//*****************************************************************************
+//
+// ram.c - Driver for the ram Module.
+//
+//*****************************************************************************
 
-#ifndef OUTOFBOX_FR5969_NEWD_SDCARDLOGMODE_H_
-#define OUTOFBOX_FR5969_NEWD_SDCARDLOGMODE_H_
+//*****************************************************************************
+//
+//! \addtogroup ram_api ram
+//! @{
+//
+//*****************************************************************************
 
-#include <stdint.h>
+#include "inc/hw_memmap.h"
 
-#define SDCARD_LOG_MODE      '6'
-#define TRANSMIT_SDCARD_DATA_MODE '7'
+#ifdef __MSP430_HAS_RC_FRAM__
+#include "ram.h"
 
-extern int mode;
-extern int noSDCard;
+#include <assert.h>
 
-void sdcardLog(void);
-void sendDataSDCard(void);
-void sendTimeStampSDCard(void);
-void storeTimeStampSDCard(unsigned short* numLogFiles);
-char * itoa(int, char *, int);
-void writeData(char * data);
-void writeDataSameLine(char * data, char * data2, char * data3);
+void RAM_setSectorOff(uint8_t sector,
+                      uint8_t mode)
+{
+    uint8_t sectorPos = sector << 1;
+    uint8_t val = HWREG8(RAM_BASE + OFS_RCCTL0_L) & ~(0x3 << sectorPos);
 
-//----------------
-void SDFindOpenNewFile(void);
-void writeDataSameLine_2(char * data, char * data2,  char * data3,  char * data4);
-void writeDataSameLine_3(char * data, char * data2,  char * data3);
-void writeDataSameLine_4(char * data, char * data2,  char * data3, char * data4);
-void SDFindRow(void);
-void SDCloseSPI(void);
-void SDCardNewFile(unsigned short* numLogFiles);
-void SDCardNewFileReactionWheel(unsigned short* numLogFiles);
-//-------------------
+    HWREG16(RAM_BASE + OFS_RCCTL0) = (RCKEY | val | (mode << sectorPos));
+}
 
+uint8_t RAM_getSectorState(uint8_t sector)
+{
+    uint8_t sectorPos = sector << 1;
+    return((HWREG8(RAM_BASE + OFS_RCCTL0_L) & (0x3 << sectorPos)) >> sectorPos);
+}
 
-#endif /* OUTOFBOX_FR5969_NEWD_SDCARDLOGMODE_H_ */
+#endif
+//*****************************************************************************
+//
+//! Close the doxygen group for ram_api
+//! @}
+//
+//*****************************************************************************
