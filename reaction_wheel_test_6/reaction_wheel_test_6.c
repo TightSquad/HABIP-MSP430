@@ -25,7 +25,7 @@ Calendar currTime;
 int NumReactionWheelLoggedDataRows = 25000;
 int NumLoggedDataRows = 3000; //~100ms a sample
 
-extern int reaction_wheel_control_bit;
+int reaction_wheel_control_bit;
 
 unsigned char count = 0;
 unsigned long data;
@@ -43,6 +43,7 @@ void enterLPM35(void);
 void blinkP1OUT(int blink_number);
 void ReactionWheel(void);
 void DataLogging(void);
+void ReactionWheelNoJump(void);
 
 // SPI UD Variables -habip/spi.c
 // Slave (slv)
@@ -80,11 +81,10 @@ int _system_pre_init(void)
  * main.c
  */
 int main(void) {
-	int motor_controller_enable = 0;
 
 	Init_GPIO();
     // SPI GPIO
-    config_SPI_A0_Slave_GPIO();
+    //config_SPI_A0_Slave_GPIO();
 
 	GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
 
@@ -112,18 +112,28 @@ int main(void) {
 	Init_Clock();
 
 	while(1){
-//		reaction_wheel_control_bit = P8IN & 0x01;
+		reaction_wheel_control_bit = P8IN & 0x01;
 
-		//for testing reaction wheel
-//		reaction_wheel_control_bit = 1;
+		if (reaction_wheel_control_bit == 0){
+			if((uint16_t)currTime.Hours >= 0x01){
+				ReactionWheelNoJump();
+				DataLogging();
+			}
+			if((uint16_t)currTime.Hours >= 0x02){
+				if (reaction_wheel_control_bit == 1){
+					ReactionWheelNoJump();
+				}
+				if (reaction_wheel_control_bit == 0){
+					DataLogging();
+				}
+			}
+			else{
+				DataLogging();
+			}
+		}
 
 		if (reaction_wheel_control_bit == 1){
 			ReactionWheel();
-			reaction_wheel_control_bit = 0;
-		}
-		if (reaction_wheel_control_bit == 0){
-			DataLogging();
-			reaction_wheel_control_bit = 1;
 		}
 	}
 
@@ -290,12 +300,12 @@ void ReactionWheel(void){
 
 	double kp = 120;
 	double ki = -0.2;
-	double kd = 50;
+//	double kd = 50;
 	double error;
 	double integral;
-	double derivative;
+//	double derivative;
 	double control_speed;
-	double last_error;
+//	double last_error;
 
 
 	 // create new file to save data
@@ -362,12 +372,12 @@ void ReactionWheel(void){
 
 		if(control_speed > 0.2){
 			motorON();
-			motorCW();
+			motorCCW();
 			motorRPM(control_speed);
 		}
 		else if (control_speed < -0.2){
 			motorON();
-			motorCCW();
+			motorCW();
 			motorRPM(control_speed);
 		}
 		else{
@@ -390,13 +400,13 @@ void ReactionWheel(void){
 		blink_count++;
 
 		//comment out to test reaction wheel
-//		reaction_wheel_control_bit = P8IN & 0x01;
-//		if (reaction_wheel_control_bit == 0){
-//			break;
-//		}
+		reaction_wheel_control_bit = P8IN & 0x01;
+		if (reaction_wheel_control_bit == 0){
+			break;
+		}
 
-//		__delay_cycles(32000);
-		__delay_cycles(8000);
+		__delay_cycles(32000);
+//		__delay_cycles(8000);
 	}
 
 	//slow down and stop the motor
@@ -554,10 +564,10 @@ void DataLogging(void){
 		log_num++;
 		row = row + 8;
 		blink_count++;
-//		reaction_wheel_control_bit = P8IN & 0x01;
-//		if (reaction_wheel_control_bit == 1){
-//			return;
-//		}
+		reaction_wheel_control_bit = P8IN & 0x01;
+		if (reaction_wheel_control_bit == 1){
+			return;
+		}
 //		__delay_cycles(32000);
 	}
 
@@ -565,4 +575,181 @@ void DataLogging(void){
 	//SDCloseSPI();
 }
 
+
+void ReactionWheelNoJump(void){
+	int log_num = 0;
+	long row = 0;
+	int blink_count = 0;
+
+	int current_adc_val;
+	char hour_min_char[8];
+	char sec_ms_char[8];
+
+	uint16_t curr_sec_ms;
+	uint16_t rtc_ms;
+	uint16_t curr_sec;
+
+	uint16_t curr_hour_min;
+	uint16_t curr_min;
+	uint16_t curr_hour;
+
+	char z_gyro_char[8];
+	char adc_char[8];
+
+	//motor control variables
+	int motor_duty_cycle = 2000;
+	double z_gyro_data;
+	signed int z_gyro_raw;
+	double z_gyro_rpm;
+
+	double kp = 120;
+	double ki = -0.2;
+//	double kd = 50;
+	double error;
+	double integral;
+//	double derivative;
+	double control_speed;
+//	double last_error;
+
+
+	 // create new file to save data
+	SDCardNewFileReactionWheel(&numLogFiles);
+
+	//start motor PWM to 0
+	motorSpeed(motor_duty_cycle);
+	motorON();
+
+	GPIO_setOutputHighOnPin(GPIO_PORT_P1, GPIO_PIN0);
+	GPIO_setOutputLowOnPin(GPIO_PORT_P1, GPIO_PIN1);
+
+	while (log_num < NumReactionWheelLoggedDataRows) {
+		//initialze the SPI
+		setup_IMU_SPI();
+
+		// grab IMU data
+		z_gyro_raw = read_IMU_SPI(ZGYRO);
+		z_gyro_data = EMA((double)z_gyro_raw, (double)z_gyro_data);
+
+		// exponential moving average of IMU_rpm data
+		z_gyro_rpm = IMUtoRPM(z_gyro_data);
+
+		//capture current ADC value
+		current_adc_val = readADC();
+
+		//speed up clock to 8MHz
+		Init_Clock();
+
+		//get current time in seconds from RTC_C
+		currTime = RTC_C_getCalendarTime(RTC_C_BASE);
+		curr_hour = (uint16_t)currTime.Hours;
+		curr_min = (uint16_t)currTime.Minutes;
+		curr_sec = (uint16_t)currTime.Seconds;
+
+		//grab RTC counter
+		rtc_ms =  RTCPS;
+
+		// convert rtcps to ms
+		rtc_ms = (uint16_t)(((long)rtc_ms * 500l)/32768l);
+
+		// concatenate seconds/ms and hour/min
+		curr_sec_ms = (curr_sec << 10) | rtc_ms;
+		curr_hour_min = (curr_hour << 8) | curr_min;
+
+		// write the data to FRAM
+		__data20_write_short((unsigned long int)fram_data + row, curr_hour_min);
+		__data20_write_short((unsigned long int)fram_data + row + 2, curr_sec_ms);
+		__data20_write_short((unsigned long int)fram_data + row + 4, z_gyro_raw);
+		__data20_write_short((unsigned long int)fram_data + row + 6, current_adc_val);
+
+		// PI Controller
+		error = -z_gyro_rpm;
+
+		integral = integral + error;
+
+//		derivative = error  - last_error;
+
+//			control_speed = (kp * error) + (ki * integral) + (kd * derivative);
+//		control_speed = (kp * error) + (kd * derivative);
+		control_speed = (kp * error) + (ki * integral);
+
+//		last_error = error;
+
+		if(control_speed > 0.2){
+			motorON();
+			motorCCW();
+			motorRPM(control_speed);
+		}
+		else if (control_speed < -0.2){
+			motorON();
+			motorCW();
+			motorRPM(control_speed);
+		}
+		else{
+			motorRPM(0);
+			motorOFF();
+		}
+
+
+		//blink every 100 samples captured
+		if (blink_count == 100){
+			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
+			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN1);
+			//update Comms Data Buffer
+//			store_response_val(4, "ZGY", z_gyro_char);
+			blink_count = 0;
+		}
+
+		log_num++;
+		row = row + 8;
+		blink_count++;
+
+		//comment out to test reaction wheel
+//		reaction_wheel_control_bit = P8IN & 0x01;
+//		if (reaction_wheel_control_bit == 0){
+//			break;
+//		}
+
+		__delay_cycles(32000);
+//		__delay_cycles(8000);
+	}
+
+	//slow down and stop the motor
+	motorRampDown();
+	motorOFF();
+
+	//Open txt file
+	SDFindOpenNewFile();
+
+	//reset counter variables
+	row = 0;
+	blink_count = 0;
+	log_num = 0;
+
+	//start data logging
+	for(log_num = 0; log_num < NumReactionWheelLoggedDataRows; log_num++){
+		//read from FRAM2 and convert int to char string
+		itoa(__data20_read_short((unsigned long int)fram_data + row), hour_min_char, 16);
+		itoa(__data20_read_short((unsigned long int)fram_data+ row + 2), sec_ms_char, 16);
+		itoa(__data20_read_short((unsigned long int)fram_data+ row + 4), z_gyro_char, 10);
+		itoa(__data20_read_short((unsigned long int)fram_data+ row + 6), adc_char, 10);
+
+		row = row + 8;
+
+		//write all data to a single line in the currently open txt file
+		writeDataSameLine_4(hour_min_char, sec_ms_char, z_gyro_char, adc_char);
+
+		//keep track when to give status blink
+		blink_count++;
+		if (blink_count == 100){
+			GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
+			blink_count = 0;
+		}
+	}
+
+	//close the currently open txt file
+	SDCloseSPI();
+
+	row = 0;
+	log_num = 0;
+}
 

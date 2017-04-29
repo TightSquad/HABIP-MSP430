@@ -11,7 +11,7 @@
 #include "uart.h"
 #include "spi.h"
 
-int reaction_wheel_control_bit = 0;
+//int reaction_wheel_control_bit = 0;
 
 char response_buffer[4][PI_HAT_SENSOR_CNT][MSG_LEN]={};
 char response_buffer_b4[DAQCS_SENSOR_CNT][MSG_LEN]={};
@@ -634,11 +634,11 @@ void parse_cmd_from_host(char* msg){
 					// Insert Reaction wheel cmd TODO:
 					if (*host2_val == '0'){
 						// turn off reaction wheel
-						reaction_wheel_control_bit = 0;
+						//reaction_wheel_control_bit = 0;
 					}
 					if (*host2_val == '1'){
 						// turn on reaction wheel
-						reaction_wheel_control_bit = 1;
+						//reaction_wheel_control_bit = 1;
 					}
 
 					spi_slv_fsm_state = LISTENING_FOR_COMMAND;
