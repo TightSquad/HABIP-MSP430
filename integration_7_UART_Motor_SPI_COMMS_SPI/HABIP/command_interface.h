@@ -94,6 +94,7 @@
 
 #define toggle_heartbeat() GPIO_toggleOutputOnPin(GPIO_PORT_P1, GPIO_PIN0);
 
+void check_pressure(void); // last minute here we go.
 int get_colon_count(const char* s);
 void rmv_start_end_chars(char* s);
 void store_response_val(int brd_num, char* sns, char* val);

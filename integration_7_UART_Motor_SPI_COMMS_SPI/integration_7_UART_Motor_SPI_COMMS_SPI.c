@@ -144,7 +144,7 @@ int main(void)
     __no_operation();
     __bis_SR_register(GIE);
 
-    P8OUT |= BIT0;
+//    P8OUT |= BIT0;
 
 // Begin Main Code
 while(1){
@@ -169,13 +169,13 @@ while(1){
 	}
 	else if(timer_counter == 7){
 		grab_all_pi_hat(3);
-		if(motor_en_cnt == MOTOR_CNT){
-			P8OUT ^= (BIT0);
-			motor_en_cnt = 0;
-		}
-		else {
-			motor_en_cnt++;
-		}
+//		if(motor_en_cnt == MOTOR_CNT){
+//			P8OUT ^= (BIT0);
+//			motor_en_cnt = 0;
+//		}
+//		else {
+//			motor_en_cnt++;
+//		}
 		timer_counter++;
 	}
 	else if(timer_counter == 9){
